@@ -1223,6 +1223,7 @@ function initCampaignBubble() {
     countdown.setAttribute("hidden", "");
   }
   bubble.removeAttribute("hidden");
+  console.log("bubble hidden after remove:", bubble.hasAttribute("hidden"));
   setTimeout(() => bubble.classList.add("show"), 1500);
   document.getElementById("campaignBubbleClose").addEventListener("click", () => {
     bubble.classList.remove("show");
