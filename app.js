@@ -1205,8 +1205,10 @@ $("#newsletterForm").addEventListener("submit", (event) => {
 });
 
 function initCampaignBubble() {
+  window.__bubbleStarted = true;
   const bubble = document.getElementById("campaignBubble");
   if (!bubble || !activeCampaign.showBubble) return;
+  window.__bubblePassedShow = true;
   if (sessionStorage.getItem("nordico_campaign_closed")) return;
   document.getElementById("campaignBubbleBadge").textContent = activeCampaign.bubbleLabel || "";
   document.getElementById("campaignBubbleTitle").textContent = activeCampaign.bubbleTitle || "";
@@ -1283,13 +1285,16 @@ function initCampaignCanvas() {
 }
 
 async function initApp() {
+  window.__initAppRan = true;
   await loadProductsFromSupabase();
   renderCategories();
   renderProducts();
   renderHeader();
   renderCart();
   refreshIcons();
+  window.__beforeBubble = true;
   initCampaignBubble();
+  window.__afterBubble = true;
   initCampaignCanvas();
 }
 initApp();
