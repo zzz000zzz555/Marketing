@@ -16,7 +16,7 @@
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-client.js" defer></script>
-<script src="app.js?v=5" defer></script>
+<script src="app.js?v=6" defer></script>
 <script src="animations.js" defer></script>
 </head>
 <body>
@@ -32,13 +32,13 @@
     <div class="header-actions">
       <button class="icon-button" id="themeToggleButton" aria-label="Cambiar tema" type="button"><i data-lucide="moon"></i></button>
       <span class="welcome-label" id="welcomeLabel"></span>
-      <button class="icon-button account-button" id="accountButton" aria-label="Iniciar sesión">
+      <button class="icon-button account-button" id="accountButton" aria-label="Ingresar, iniciar sesión">
         <i data-lucide="user-round"></i><span class="action-label" id="accountLabel">Ingresar</span>
       </button>
       <button class="icon-button" id="ordersButton" hidden aria-label="Ver mis pedidos">
         <i data-lucide="package-check"></i><span class="action-label">Pedidos</span>
       </button>
-      <button class="icon-button cart-trigger" id="cartButton" aria-label="Abrir carrito">
+      <button class="icon-button cart-trigger" id="cartButton" aria-label="Bolsa, 0 artículos">
         <i data-lucide="shopping-bag"></i><span class="action-label">Bolsa</span><span class="cart-count" id="cartCount">0</span>
       </button>
     </div>
@@ -290,7 +290,7 @@
     </div>
   </aside>
 
-  <button class="cart-bubble" id="cartBubble" aria-label="Abrir carrito" type="button">
+  <button class="cart-bubble" id="cartBubble" aria-label="Bolsa, 0 artículos" type="button">
     <i data-lucide="shopping-bag"></i>
     <span class="cart-bubble-count" id="cartBubbleCount">0</span>
   </button>

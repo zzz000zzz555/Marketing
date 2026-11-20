@@ -347,7 +347,7 @@ function renderProducts(resetPage = false) {
               <span>${escapeHtml(product.category)}</span>
               <strong>${money(product.price)}</strong>
             </div>
-            <button class="add-button card-back-add" data-add="${product.id}" ${stock < 1 ? "disabled" : ""}><i data-lucide="${stock < 1 ? "check" : "plus"}"></i></button>
+            <button class="add-button card-back-add" data-add="${product.id}" aria-label="Agregar ${escapeHtml(product.name)} al carrito" ${stock < 1 ? "disabled" : ""}><i data-lucide="${stock < 1 ? "check" : "plus"}"></i></button>
           </div>
         </div>
       </article>`;
@@ -402,6 +402,10 @@ function cartSubtotal() {
   return products.reduce((sum, product) => sum + product.price * (cart[product.id] || 0), 0);
 }
 
+function roundMoney(value) {
+  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+}
+
 function persistCart() {
   writeStorage(cartKey(), cart);
   renderCart();
@@ -414,6 +418,8 @@ function renderCart() {
   $("#cartCount").textContent = quantity;
   $("#drawerCount").textContent = `(${quantity})`;
   $("#cartBubbleCount").textContent = quantity;
+  $("#cartButton").setAttribute("aria-label", `Bolsa, ${quantity} ${quantity === 1 ? "artículo" : "artículos"}`);
+  cartBubble.setAttribute("aria-label", `Bolsa, ${quantity} ${quantity === 1 ? "artículo" : "artículos"}`);
   cartBubble.classList.toggle("has-items", quantity > 0);
   cartBubble.classList.remove("bump", "count-bump");
   void cartBubble.offsetWidth;
@@ -446,7 +452,7 @@ function renderCart() {
 function renderHeader() {
   $("#welcomeLabel").textContent = currentUser ? `Hola, ${currentUser.name}` : "";
   $("#accountLabel").textContent = currentUser ? "Salir" : "Ingresar";
-  $("#accountButton").setAttribute("aria-label", currentUser ? "Cerrar sesión" : "Iniciar sesión");
+  $("#accountButton").setAttribute("aria-label", currentUser ? "Salir, cerrar sesión" : "Ingresar, iniciar sesión");
   $("#ordersButton").hidden = !currentUser;
 }
 
@@ -676,9 +682,9 @@ async function submitOrder(event) {
     items: products.filter((product) => cart[product.id] > 0).map((product) => ({
       id: product.id, name: product.name, price: product.price, quantity: cart[product.id]
     })),
-    subtotal: cartSubtotal(),
-    tax: cartSubtotal() * TAX_RATE,
-    total: cartSubtotal() * (1 + TAX_RATE),
+    subtotal: roundMoney(cartSubtotal()),
+    tax: roundMoney(cartSubtotal() * TAX_RATE),
+    total: roundMoney(cartSubtotal() * (1 + TAX_RATE)),
     address: String(formData.get("address")).trim(),
     payment: String(formData.get("payment"))
   };
