@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Festive Landing — Liquid Glass</title>
+  <link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+  <canvas id="fxCanvas" aria-hidden="true"></canvas>
+
+  <main>
+    <section class="hero">
+      <div class="glass-card hero-card">
+        <span class="badge">🎄 NAVIDAD</span>
+        <h1>Felices Fiestas</h1>
+        <p>Celebra la temporada con ofertas especiales y un ambiente mágico.</p>
+        <button class="glass-btn">Ver ofertas</button>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="glass-card">
+        <h3>Envío gratis</h3>
+        <p>En pedidos mayores a S/ 250 a todo el Perú.</p>
+      </div>
+      <div class="glass-card">
+        <h3>Devoluciones fáciles</h3>
+        <p>30 días para cambios y devoluciones.</p>
+      </div>
+      <div class="glass-card">
+        <h3>Compra segura</h3>
+        <p>Pagos tokenizados y protegidos.</p>
+      </div>
+    </section>
+  </main>
+
+  <button class="music-btn" id="musicBtn" aria-label="Reproducir música ambiental" type="button">
+    <span class="wave"></span>
+    <span class="wave"></span>
+    <span class="wave"></span>
+    <i>♪</i>
+  </button>
+
+  <audio id="ambientAudio" loop preload="none">
+    <source src="https://cdn.pixabay.com/download/audio/2022/12/14/audio_1234.mp3?filename=christmas-ambient.mp3" type="audio/mpeg">
+  </audio>
+
+  <script src="js/festive.js"></script>
+</body>
+</html>
