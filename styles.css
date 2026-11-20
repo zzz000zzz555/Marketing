@@ -687,3 +687,4 @@ html[data-season="anio-nuevo"] .deco-aurora {
   transition: transform .25s, box-shadow .25s, background-color .25s, background-position .8s cubic-bezier(.16,1,.3,1);
 }
 .button:hover { background-position: -80% 0; }
+.announcement[hidden] { display: none; }

@@ -82,6 +82,25 @@ a { color: inherit; text-decoration: none; }
 .decor-actions .button { background: transparent; color: var(--accent); box-shadow: none; }
 .decor-actions .button:hover { background: var(--accent); color: #fff; }
 .button-dark { background: var(--accent); color: #fff; }
+
+/* Mensajes, decoraciones y programador */
+.form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+@media (max-width: 640px) { .form-grid-2 { grid-template-columns: 1fr; } }
+.decor-status { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; padding: 12px 14px; border: 1px solid rgba(14,165,164,.22); border-radius: 12px; background: rgba(14,165,164,.06); }
+.decor-status .badge { border-color: currentColor; }
+.decor-status-meta { font-size: 12px; color: var(--muted); }
+.decor-status-meta strong { color: var(--ink); font-weight: 600; }
+.schedule-next { margin-bottom: 16px; padding: 12px 14px; border-radius: 12px; background: rgba(14,165,164,.08); border: 1px solid rgba(14,165,164,.2); font-size: 12px; color: var(--muted); }
+.schedule-next strong { color: var(--ink); }
+.badge.programado { color: #2563eb; border-color: #2563eb; background: rgba(37,99,235,.08); }
+.badge.pausado { color: var(--muted); }
+.badge.activo { color: #059669; border-color: #059669; background: rgba(5,150,105,.08); }
+body.admin-dark .badge.activo { color: #34d399; }
+body.admin-dark .schedule-next, body.admin-dark .decor-status { background: rgba(14,165,164,.12); }
+.switch-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.switch-inline input { accent-color: var(--accent); }
+.schedule-submit { width: auto; margin-top: 0; }
+#scheduleTable small { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
 .login-hint { margin: 18px 0 8px; font-size: 11px; color: var(--muted); text-align: center; }
 .login-hint strong { color: var(--ink); }
 .login-security { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }

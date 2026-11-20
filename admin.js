@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
   adminSession: "nordico_admin_session",
   adminLog: "nordico_admin_log",
   campaign: "nordico_campaign",
+  schedule: "nordico_schedule",
   auditLog: "nordico_audit_log"
 };
 
@@ -237,7 +238,9 @@ async function renderView(view) {
     orders: "Pedidos",
     users: "Usuarios",
     content: "Contenido",
-    campaign: "Campañas",
+    messages: "Mensajes globales",
+    decorations: "Decoraciones",
+    scheduler: "Programador de eventos",
     audit: "Auditoría",
     settings: "Configuración"
   };
@@ -248,7 +251,9 @@ async function renderView(view) {
   if (view === "orders") await renderOrders();
   if (view === "users") renderUsers();
   if (view === "content") loadPolicyEditor();
-  if (view === "campaign") loadCampaignEditor();
+  if (view === "messages") loadMessagesEditor();
+  if (view === "decorations") loadDecorationsEditor();
+  if (view === "scheduler") renderScheduler();
   if (view === "audit") { renderAudit(); renderAuditActivity(); }
   if (view === "settings") loadSettings();
   refreshIcons();
@@ -641,69 +646,297 @@ function savePolicy() {
   showToast("Política guardada");
 }
 
-// ---------- Campaign ----------
-function loadCampaignEditor() {
-  const c = readStorage(STORAGE_KEYS.campaign, {}) || {};
-  $("#campShowBubble").checked = c.showBubble !== false;
-  $("#campShowAnimations").checked = c.showAnimations !== false;
-  $("#campShowDecorations").checked = c.showDecorations !== false;
-  $("#campThemeKey").value = c.themeKey || "default";
-  $("#campVisualEffect").value = c.visualEffect || "none";
-  $("#campBubbleLabel").value = c.bubbleLabel || "";
-  $("#campBubbleTitle").value = c.bubbleTitle || "";
-  $("#campBubbleSubtitle").value = c.bubbleSubtitle || "";
-  $("#campBubbleCtaText").value = c.bubbleCtaText || "";
-  $("#campBubbleCtaUrl").value = c.bubbleCtaUrl || "";
-  $("#campShowCountdown").checked = !!c.showCountdown;
-  $("#campAnnouncement").value = c.announcementText || "";
-  if (c.endsAt) $("#campEndsAt").value = new Date(c.endsAt).toISOString().slice(0,16);
-}
-
-function setDecorationsEnabled(enabled, reason) {
-  const stored = readStorage(STORAGE_KEYS.campaign, null);
-  const c = stored && typeof stored === "object" ? stored : {
+// ---------- Mensajes globales / decoraciones / programador ----------
+function campaignBase() {
+  const c = readStorage(STORAGE_KEYS.campaign, null);
+  return c && typeof c === "object" ? c : {
     showBubble: true,
     showAnimations: true,
+    showDecorations: true,
+    showAnnouncement: true,
     visualEffect: "none",
     themeKey: "default",
     showCountdown: false,
     announcementText: ""
   };
-  c.showDecorations = enabled;
+}
+
+function writeCampaign(patch, action, details) {
+  const c = { ...campaignBase(), ...patch };
   writeStorage(STORAGE_KEYS.campaign, c);
-  const checkbox = $("#campShowDecorations");
-  if (checkbox) checkbox.checked = enabled;
-  logAction(getSession()?.username || "admin", enabled ? "Decoraciones reactivadas" : "Decoraciones retiradas", {
+  logAction(getSession()?.username || "admin", action, {
     entityType: "campaign",
     entityId: c.themeKey || "default",
-    details: reason || (enabled ? "SVG y partículas visibles nuevamente" : "Apagado de emergencia: SVG y partículas retirados")
+    details
   });
+  return c;
+}
+
+function toLocalInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function fromLocalInput(value) { return value ? new Date(value).toISOString() : null; }
+
+function loadMessagesEditor() {
+  const c = campaignBase();
+  $("#msgShowAnnouncement").checked = c.showAnnouncement !== false;
+  $("#msgAnnouncement").value = c.announcementText || "";
+  $("#msgShowBubble").checked = c.showBubble !== false;
+  $("#msgBubbleLabel").value = c.bubbleLabel || "";
+  $("#msgBubbleTitle").value = c.bubbleTitle || "";
+  $("#msgBubbleSubtitle").value = c.bubbleSubtitle || "";
+  $("#msgBubbleCtaText").value = c.bubbleCtaText || "";
+  $("#msgBubbleCtaUrl").value = c.bubbleCtaUrl || "";
+  $("#msgShowCountdown").checked = !!c.showCountdown;
+  $("#msgEndsAt").value = toLocalInput(c.endsAt);
+}
+
+function loadDecorationsEditor() {
+  const c = campaignBase();
+  $("#decShowDecorations").checked = c.showDecorations !== false;
+  $("#decShowAnimations").checked = c.showAnimations !== false;
+  $("#decThemeKey").value = c.themeKey || "default";
+  $("#decVisualEffect").value = c.visualEffect || "none";
+  renderDecorStatus();
+}
+
+function getActiveSchedule(now = Date.now()) {
+  return readStorage(STORAGE_KEYS.schedule, [])
+    .filter((e) => e && e.enabled !== false && e.startAt && new Date(e.startAt).getTime() <= now && (!e.endAt || new Date(e.endAt).getTime() > now))
+    .sort((a, b) => new Date(b.startAt) - new Date(a.startAt))[0] || null;
+}
+
+function renderDecorStatus() {
+  const el = $("#decorStatus");
+  if (!el) return;
+  const c = campaignBase();
+  const active = getActiveSchedule();
+  const on = c.showDecorations !== false;
+  el.innerHTML = `
+    <span class="badge ${on ? "ok" : "low"}">${on ? "Decoraciones activas" : "Decoraciones retiradas"}</span>
+    <span class="decor-status-meta">Tema guardado: <strong>${escapeHtml(c.themeKey || "default")}</strong> · Efecto: <strong>${escapeHtml(c.visualEffect || "none")}</strong>${active ? ` · Evento activo: <strong>${escapeHtml(active.name)}</strong>` : ""}</span>`;
+}
+
+function setDecorationsEnabled(enabled, reason) {
+  writeCampaign({ showDecorations: enabled }, enabled ? "Decoraciones reactivadas" : "Decoraciones retiradas",
+    reason || (enabled ? "SVG y partículas visibles nuevamente" : "Apagado de emergencia: SVG y partículas retirados"));
+  const checkbox = $("#decShowDecorations");
+  if (checkbox) checkbox.checked = enabled;
+  renderDecorStatus();
   showToast(enabled ? "Decoraciones activadas" : "Decoraciones retiradas de la tienda");
 }
 
-function saveCampaign() {
-  const c = {
-    showBubble: $("#campShowBubble").checked,
-    showAnimations: $("#campShowAnimations").checked,
-    showDecorations: $("#campShowDecorations").checked,
-    themeKey: $("#campThemeKey").value,
-    visualEffect: $("#campVisualEffect").value,
-    bubbleLabel: $("#campBubbleLabel").value.trim(),
-    bubbleTitle: $("#campBubbleTitle").value.trim(),
-    bubbleSubtitle: $("#campBubbleSubtitle").value.trim(),
-    bubbleCtaText: $("#campBubbleCtaText").value.trim(),
-    bubbleCtaUrl: $("#campBubbleCtaUrl").value.trim(),
-    showCountdown: $("#campShowCountdown").checked,
-    announcementText: $("#campAnnouncement").value.trim(),
-    endsAt: $("#campEndsAt").value ? new Date($("#campEndsAt").value).toISOString() : null
+function saveMessages() {
+  const patch = {
+    showAnnouncement: $("#msgShowAnnouncement").checked,
+    announcementText: $("#msgAnnouncement").value.trim(),
+    showBubble: $("#msgShowBubble").checked,
+    bubbleLabel: $("#msgBubbleLabel").value.trim(),
+    bubbleTitle: $("#msgBubbleTitle").value.trim(),
+    bubbleSubtitle: $("#msgBubbleSubtitle").value.trim(),
+    bubbleCtaText: $("#msgBubbleCtaText").value.trim(),
+    bubbleCtaUrl: $("#msgBubbleCtaUrl").value.trim(),
+    showCountdown: $("#msgShowCountdown").checked,
+    endsAt: fromLocalInput($("#msgEndsAt").value)
   };
-  writeStorage(STORAGE_KEYS.campaign, c);
-  logAction(getSession()?.username || "admin", "Campaña actualizada", {
-    entityType: "campaign",
-    entityId: c.themeKey,
-    details: `Tema ${c.themeKey} · decoraciones ${c.showDecorations ? "activas" : "retiradas"} · animaciones ${c.showAnimations ? "activas" : "desactivadas"}`
+  writeCampaign(patch, "Mensajes globales actualizados",
+    `Barra ${patch.showAnnouncement ? "visible" : "oculta"} · globo ${patch.showBubble ? "activo" : "desactivado"} · cuenta regresiva ${patch.showCountdown ? "activa" : "off"}`);
+  showToast("Mensajes guardados");
+}
+
+function saveDecorations() {
+  const patch = {
+    showDecorations: $("#decShowDecorations").checked,
+    showAnimations: $("#decShowAnimations").checked,
+    themeKey: $("#decThemeKey").value,
+    visualEffect: $("#decVisualEffect").value
+  };
+  writeCampaign(patch, "Decoraciones actualizadas",
+    `Tema ${patch.themeKey} · efecto ${patch.visualEffect} · decoraciones ${patch.showDecorations ? "activas" : "retiradas"} · animaciones ${patch.showAnimations ? "activas" : "off"}`);
+  renderDecorStatus();
+  showToast("Decoraciones guardadas");
+}
+
+// ----- Programador -----
+function scheduleStatus(event, now = Date.now()) {
+  if (!event || event.enabled === false) return { key: "pausado", label: "Pausado" };
+  const start = event.startAt ? new Date(event.startAt).getTime() : NaN;
+  const end = event.endAt ? new Date(event.endAt).getTime() : Infinity;
+  if (Number.isFinite(start) && now < start) return { key: "programado", label: "Programado" };
+  if (now >= end) return { key: "finalizado", label: "Finalizado" };
+  if (Number.isFinite(start) && now >= start) return { key: "activo", label: "Activo" };
+  return { key: "pausado", label: "Pausado" };
+}
+
+function formatDuration(ms) {
+  if (ms <= 0) return "0 min";
+  const d = Math.floor(ms / 86400000);
+  const h = Math.floor((ms % 86400000) / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return [d ? `${d}d` : null, h ? `${h}h` : null, `${m}m`].filter(Boolean).join(" ");
+}
+
+function countdownLabel(event, now = Date.now()) {
+  const st = scheduleStatus(event, now);
+  if (st.key === "activo") return event.endAt ? `Termina en ${formatDuration(new Date(event.endAt).getTime() - now)}` : "En curso";
+  if (st.key === "programado") return `Empieza en ${formatDuration(new Date(event.startAt).getTime() - now)}`;
+  return st.label;
+}
+
+function formatScheduleDate(value) {
+  return value ? new Date(value).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" }) : "—";
+}
+
+function updateScheduleNext(events, now = Date.now()) {
+  const el = $("#scheduleNext");
+  if (!el) return;
+  const active = events.filter((e) => scheduleStatus(e, now).key === "activo").sort((a, b) => new Date(b.startAt) - new Date(a.startAt))[0];
+  const next = events.filter((e) => scheduleStatus(e, now).key === "programado").sort((a, b) => new Date(a.startAt) - new Date(b.startAt))[0];
+  if (active) el.innerHTML = `<strong>Activo ahora:</strong> ${escapeHtml(active.name)} · ${countdownLabel(active, now)}`;
+  else if (next) el.innerHTML = `<strong>Próximo evento:</strong> ${escapeHtml(next.name)} · ${countdownLabel(next, now)}`;
+  else el.innerHTML = `<strong>Sin eventos en curso.</strong> La tienda muestra la configuración guardada manualmente.`;
+}
+
+let scheduleTicker = null;
+function renderScheduler() {
+  const table = $("#scheduleTable");
+  if (!table) return;
+  const events = readStorage(STORAGE_KEYS.schedule, []);
+  const now = Date.now();
+  updateScheduleNext(events, now);
+
+  if (!events.length) {
+    table.innerHTML = `<tbody><tr><td colspan="7">No hay eventos programados. Crea uno con “Nuevo evento”.</td></tr></tbody>`;
+  } else {
+    const rows = events.slice().sort((a, b) => new Date(a.startAt || 0) - new Date(b.startAt || 0)).map((e) => {
+      const st = scheduleStatus(e, now);
+      return `<tr>
+        <td><strong>${escapeHtml(e.name)}</strong><br><small>${escapeHtml((e.payload || {}).themeKey || "default")}</small></td>
+        <td>${formatScheduleDate(e.startAt)}</td>
+        <td>${formatScheduleDate(e.endAt)}</td>
+        <td><span class="badge ${st.key === "activo" ? "activo" : st.key === "finalizado" ? "low" : st.key}">${st.label}</span></td>
+        <td class="schedule-countdown" data-countdown-for="${escapeHtml(e.id)}">${countdownLabel(e, now)}</td>
+        <td><label class="switch-inline"><input type="checkbox" data-toggle-schedule="${escapeHtml(e.id)}" ${e.enabled !== false ? "checked" : ""}> Activo</label></td>
+        <td><div class="row-actions">
+          <button type="button" data-edit-schedule="${escapeHtml(e.id)}">Editar</button>
+          <button type="button" class="danger" data-delete-schedule="${escapeHtml(e.id)}">Eliminar</button>
+        </div></td>
+      </tr>`;
+    }).join("");
+    table.innerHTML = `<thead><tr><th>Evento</th><th>Inicia</th><th>Finaliza</th><th>Estado</th><th>Cuenta</th><th>Habilitado</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody>`;
+  }
+
+  if (!scheduleTicker) {
+    scheduleTicker = setInterval(() => {
+      if ($("#view-scheduler")?.hidden) return;
+      const current = readStorage(STORAGE_KEYS.schedule, []);
+      updateScheduleNext(current);
+      $$("[data-countdown-for]").forEach((cell) => {
+        const ev = current.find((x) => x.id === cell.dataset.countdownFor);
+        if (ev) cell.textContent = countdownLabel(ev);
+      });
+    }, 1000);
+  }
+}
+
+function openScheduleModal(event = null) {
+  $$(".modal").forEach((m) => { m.hidden = true; });
+  $("#scheduleModalTitle").textContent = event ? "Editar evento" : "Programar evento";
+  $("#scheduleId").value = event?.id || "";
+  $("#scheduleName").value = event?.name || "";
+  $("#scheduleStart").value = toLocalInput(event?.startAt || new Date(Date.now() + 3600000).toISOString());
+  $("#scheduleEnd").value = toLocalInput(event?.endAt);
+  const p = event?.payload || {};
+  $("#scheduleTheme").value = p.themeKey || "default";
+  $("#scheduleAnnouncement").value = p.announcementText || "";
+  $("#scheduleBubbleLabel").value = p.bubbleLabel || "";
+  $("#scheduleBubbleTitle").value = p.bubbleTitle || "";
+  $("#scheduleDecorations").checked = p.showDecorations !== false;
+  $("#scheduleBubble").checked = p.showBubble !== false;
+  $("#scheduleEnabled").checked = event?.enabled !== false;
+  $("#scheduleError").textContent = "";
+  $("#modalBackdrop").hidden = false;
+  $("#scheduleModal").hidden = false;
+}
+
+function closeScheduleModal() {
+  $("#scheduleModal").hidden = true;
+  $("#modalBackdrop").hidden = true;
+}
+
+function useCurrentCampaignConfig() {
+  const c = campaignBase();
+  $("#scheduleTheme").value = c.themeKey || "default";
+  $("#scheduleAnnouncement").value = c.announcementText || "";
+  $("#scheduleBubbleLabel").value = c.bubbleLabel || "";
+  $("#scheduleBubbleTitle").value = c.bubbleTitle || "";
+  $("#scheduleDecorations").checked = c.showDecorations !== false;
+  $("#scheduleBubble").checked = c.showBubble !== false;
+  showToast("Configuración actual copiada al evento");
+}
+
+function saveSchedule(event) {
+  event.preventDefault();
+  const id = $("#scheduleId").value.trim();
+  const name = $("#scheduleName").value.trim();
+  const startVal = $("#scheduleStart").value;
+  const endVal = $("#scheduleEnd").value;
+  if (!name || !startVal) { $("#scheduleError").textContent = "Completa el nombre y la fecha de inicio."; return; }
+  if (endVal && new Date(endVal) <= new Date(startVal)) { $("#scheduleError").textContent = "La fecha de fin debe ser posterior al inicio."; return; }
+  const events = readStorage(STORAGE_KEYS.schedule, []);
+  const previous = events.find((e) => e.id === id);
+  const record = {
+    id: id || `ev_${Date.now().toString(36)}`,
+    name,
+    startAt: new Date(startVal).toISOString(),
+    endAt: endVal ? new Date(endVal).toISOString() : null,
+    enabled: $("#scheduleEnabled").checked,
+    payload: {
+      themeKey: $("#scheduleTheme").value,
+      announcementText: $("#scheduleAnnouncement").value.trim(),
+      bubbleLabel: $("#scheduleBubbleLabel").value.trim(),
+      bubbleTitle: $("#scheduleBubbleTitle").value.trim(),
+      showDecorations: $("#scheduleDecorations").checked,
+      showBubble: $("#scheduleBubble").checked
+    },
+    createdAt: previous?.createdAt || new Date().toISOString()
+  };
+  writeStorage(STORAGE_KEYS.schedule, id ? events.map((e) => e.id === id ? record : e) : [...events, record]);
+  logAction(getSession()?.username || "admin", id ? "Evento programado actualizado" : "Evento programado creado", {
+    entityType: "schedule",
+    entityId: record.id,
+    details: `${record.name} · inicia ${formatScheduleDate(record.startAt)}${record.endAt ? ` · termina ${formatScheduleDate(record.endAt)}` : ""}`
   });
-  showToast("Campaña guardada");
+  closeScheduleModal();
+  renderScheduler();
+  showToast(id ? "Evento actualizado" : "Evento programado");
+}
+
+function deleteSchedule(id) {
+  const events = readStorage(STORAGE_KEYS.schedule, []);
+  const record = events.find((e) => e.id === id);
+  if (!record) return;
+  writeStorage(STORAGE_KEYS.schedule, events.filter((e) => e.id !== id));
+  logAction(getSession()?.username || "admin", "Evento programado eliminado", { entityType: "schedule", entityId: id, details: record.name });
+  renderScheduler();
+  showToast("Evento eliminado");
+}
+
+function toggleSchedule(id, enabled) {
+  const events = readStorage(STORAGE_KEYS.schedule, []);
+  const record = events.find((e) => e.id === id);
+  if (!record) return;
+  record.enabled = enabled;
+  writeStorage(STORAGE_KEYS.schedule, events);
+  logAction(getSession()?.username || "admin", enabled ? "Evento programado habilitado" : "Evento programado pausado", {
+    entityType: "schedule", entityId: id, details: record.name
+  });
+  renderScheduler();
+  showToast(enabled ? "Evento habilitado" : "Evento pausado");
 }
 
 // ---------- Audit ----------
@@ -972,15 +1205,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (del) deleteProduct(Number(del.dataset.delete));
   });
   $("#productForm").addEventListener("submit", saveProduct);
-  function closeAllModals() { closeProductModal(); closeCategoryModal(); }
+  function closeAllModals() { closeProductModal(); closeCategoryModal(); closeScheduleModal(); }
   $$(".modal-close, [data-close-modal]").forEach((b) => b.addEventListener("click", closeAllModals));
   $("#modalBackdrop").addEventListener("click", (e) => { if (e.target === $("#modalBackdrop")) closeAllModals(); });
   // Content
   $("#policyKeySelect").addEventListener("change", loadPolicyEditor);
   $("#savePolicyButton").addEventListener("click", savePolicy);
-  $("#saveCampaignButton").addEventListener("click", saveCampaign);
+  $("#saveMessagesButton").addEventListener("click", saveMessages);
+  $("#saveDecorationsButton").addEventListener("click", saveDecorations);
   $("#removeDecorButton")?.addEventListener("click", () => setDecorationsEnabled(false, "Retiro manual desde el panel"));
   $("#restoreDecorButton")?.addEventListener("click", () => setDecorationsEnabled(true, "Reactivación manual desde el panel"));
+  // Scheduler
+  $("#newScheduleButton").addEventListener("click", () => openScheduleModal());
+  $("#scheduleForm").addEventListener("submit", saveSchedule);
+  $("#useCurrentConfigButton").addEventListener("click", useCurrentCampaignConfig);
+  $("#scheduleTable").addEventListener("click", (e) => {
+    const edit = e.target.closest("[data-edit-schedule]");
+    const del = e.target.closest("[data-delete-schedule]");
+    if (edit) {
+      const record = readStorage(STORAGE_KEYS.schedule, []).find((x) => x.id === edit.dataset.editSchedule);
+      if (record) openScheduleModal(record);
+    }
+    if (del) deleteSchedule(del.dataset.deleteSchedule);
+  });
+  $("#scheduleTable").addEventListener("change", (e) => {
+    const toggle = e.target.closest("[data-toggle-schedule]");
+    if (toggle) toggleSchedule(toggle.dataset.toggleSchedule, toggle.checked);
+  });
   // Settings
   $("#saveSettingsButton").addEventListener("click", saveSettings);
   $("#backupButton").addEventListener("click", backupAll);
@@ -1001,5 +1252,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // Global escape
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeProductModal();
+  if (e.key !== "Escape") return;
+  closeProductModal();
+  closeCategoryModal();
+  closeScheduleModal();
 });

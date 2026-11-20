@@ -10,6 +10,8 @@ const STORAGE_KEYS = {
   settings: "nordico_settings"
 };
 
+const SCHEDULE_KEY = "nordico_schedule";
+
 // Registro append-only de eventos de clientes y pedidos (consultable desde el admin).
 const AUDIT_LOG_KEY = "nordico_audit_log";
 const AUDIT_MAX_ENTRIES = 2000;
@@ -211,7 +213,9 @@ const THEME_PRESETS = {
 
 const defaultCampaign = {
   showBubble: true,
+  showAnnouncement: true,
   showAnimations: true,
+  showDecorations: true,
   visualEffect: "none",
   themeKey: "default",
   bubbleLabel: "✨ ¡COMENZÓ!",
@@ -223,10 +227,65 @@ const defaultCampaign = {
   showCountdown: true,
   announcementText: ""
 };
-let activeCampaign = (function () {
-  try { return JSON.parse(localStorage.getItem("nordico_campaign")) || defaultCampaign; }
-  catch (e) { return defaultCampaign; }
-})();
+function readCampaignConfig() {
+  try {
+    const stored = JSON.parse(localStorage.getItem("nordico_campaign"));
+    return stored && typeof stored === "object" ? { ...defaultCampaign, ...stored } : { ...defaultCampaign };
+  } catch (e) {
+    return { ...defaultCampaign };
+  }
+}
+
+function readSchedule() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(SCHEDULE_KEY));
+    return Array.isArray(stored) ? stored : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function scheduleState(event, now = Date.now()) {
+  if (!event || event.enabled === false) return "pausado";
+  const start = event.startAt ? new Date(event.startAt).getTime() : NaN;
+  const end = event.endAt ? new Date(event.endAt).getTime() : Infinity;
+  if (Number.isFinite(start) && now < start) return "programado";
+  if (now >= end) return "finalizado";
+  if (Number.isFinite(start) && now >= start) return "activo";
+  return "pausado";
+}
+
+function resolveCampaignState() {
+  const base = readCampaignConfig();
+  const now = Date.now();
+  const events = readSchedule();
+  const active = events
+    .filter((e) => scheduleState(e, now) === "activo")
+    .sort((a, b) => new Date(b.startAt) - new Date(a.startAt))[0] || null;
+  const next = events
+    .filter((e) => scheduleState(e, now) === "programado" && e.startAt)
+    .sort((a, b) => new Date(a.startAt) - new Date(b.startAt))[0] || null;
+  return {
+    base,
+    active,
+    next,
+    campaign: active ? { ...base, ...(active.payload || {}) } : base
+  };
+}
+
+let activeCampaign = readCampaignConfig();
+let campaignSignature = "";
+
+function applyCampaignState(force = false) {
+  const state = resolveCampaignState();
+  const signature = JSON.stringify([state.active?.id || null, state.campaign]);
+  if (!force && signature === campaignSignature) return false;
+  campaignSignature = signature;
+  activeCampaign = state.campaign;
+  applyCampaignTheme();
+  syncCampaignBubble();
+  return true;
+}
 
 function isFavorite(productId) {
   return favorites.includes(productId);
@@ -1483,48 +1542,32 @@ function applyCampaignTheme() {
   document.body.style.setProperty("--campaign-hero-bg", preset.heroBg);
   const ann = activeCampaign.announcementText || preset.announcement;
   const annEl = document.querySelector(".announcement");
-  if (annEl) annEl.textContent = ann;
+  if (annEl) {
+    const showAnnouncement = activeCampaign.showAnnouncement !== false;
+    annEl.hidden = !showAnnouncement;
+    annEl.textContent = showAnnouncement ? ann : "";
+  }
   // dark/light based on theme
   if (key === "anio-nuevo" || key === "cyber") {
     document.body.classList.add("dark");
   } else {
     document.body.classList.remove("dark");
   }
-  window.dispatchEvent(new CustomEvent("nordico:seasonchange"));
+  window.dispatchEvent(new CustomEvent("nordico:seasonchange", { detail: activeCampaign }));
 }
 
 window.addEventListener("storage", (event) => {
-  if (event.key !== "nordico_campaign" || !event.newValue) return;
-  try {
-    activeCampaign = JSON.parse(event.newValue);
-    applyCampaignTheme();
-  } catch (error) {
-    console.warn("Campaña remota inválida", error);
+  if (event.key === "nordico_campaign" || event.key === SCHEDULE_KEY) {
+    applyCampaignState(true);
   }
 });
 
+let bubbleInitialized = false;
 function initCampaignBubble() {
   window.__bubbleStarted = true;
   const bubble = document.getElementById("campaignBubble");
-  if (!bubble || !activeCampaign.showBubble) return;
-  window.__bubblePassedShow = true;
-  if (sessionStorage.getItem("nordico_campaign_closed")) return;
-  document.getElementById("campaignBubbleBadge").textContent = activeCampaign.bubbleLabel || "";
-  document.getElementById("campaignBubbleTitle").textContent = activeCampaign.bubbleTitle || "";
-  document.getElementById("campaignBubbleSubtitle").textContent = activeCampaign.bubbleSubtitle || "";
-  const cta = document.getElementById("campaignBubbleCta");
-  cta.textContent = activeCampaign.bubbleCtaText || "Ver ofertas";
-  cta.href = activeCampaign.bubbleCtaUrl || "#catalogo";
-  const countdown = document.getElementById("campaignCountdown");
-  if (activeCampaign.showCountdown && activeCampaign.endsAt) {
-    countdown.removeAttribute("hidden");
-    updateCampaignCountdown();
-    setInterval(updateCampaignCountdown, 1000);
-  } else {
-    countdown.setAttribute("hidden", "");
-  }
-  bubble.removeAttribute("hidden");
-  setTimeout(() => bubble.classList.add("show"), 1500);
+  if (!bubble || bubbleInitialized) return;
+  bubbleInitialized = true;
   document.getElementById("campaignBubbleClose").addEventListener("click", () => {
     bubble.classList.remove("show");
     sessionStorage.setItem("nordico_campaign_closed", "1");
@@ -1535,6 +1578,33 @@ function initCampaignBubble() {
       sessionStorage.setItem("nordico_campaign_closed", "1");
     }
   });
+  syncCampaignBubble();
+}
+
+function syncCampaignBubble() {
+  window.__bubblePassedShow = true;
+  const bubble = document.getElementById("campaignBubble");
+  if (!bubble) return;
+  if (!activeCampaign.showBubble || sessionStorage.getItem("nordico_campaign_closed")) {
+    bubble.classList.remove("show");
+    bubble.setAttribute("hidden", "");
+    return;
+  }
+  document.getElementById("campaignBubbleBadge").textContent = activeCampaign.bubbleLabel || "";
+  document.getElementById("campaignBubbleTitle").textContent = activeCampaign.bubbleTitle || "";
+  document.getElementById("campaignBubbleSubtitle").textContent = activeCampaign.bubbleSubtitle || "";
+  const cta = document.getElementById("campaignBubbleCta");
+  cta.textContent = activeCampaign.bubbleCtaText || "Ver ofertas";
+  cta.href = activeCampaign.bubbleCtaUrl || "#catalogo";
+  const countdown = document.getElementById("campaignCountdown");
+  if (activeCampaign.showCountdown && activeCampaign.endsAt) {
+    countdown.removeAttribute("hidden");
+    updateCampaignCountdown();
+  } else {
+    countdown.setAttribute("hidden", "");
+  }
+  bubble.removeAttribute("hidden");
+  if (!bubble.classList.contains("show")) setTimeout(() => bubble.classList.add("show"), 1500);
 }
 
 function updateCampaignCountdown() {
@@ -1557,10 +1627,16 @@ async function initApp() {
     renderHeader();
     renderCart();
     refreshIcons();
-    applyCampaignTheme();
+    applyCampaignState(true);
     initCampaignBubble();
   } catch (e) {
     console.error("initApp error:", e);
   }
 }
 initApp();
+
+// El programador se evalúa cada segundo: activa y finaliza eventos sin recargar la página.
+setInterval(() => {
+  applyCampaignState();
+  updateCampaignCountdown();
+}, 1000);

@@ -39,7 +39,9 @@
         <button data-view="orders"><i data-lucide="shopping-bag"></i>Pedidos</button>
         <button data-view="users"><i data-lucide="users"></i>Usuarios</button>
         <button data-view="content"><i data-lucide="file-text"></i>Contenido</button>
-        <button data-view="campaign"><i data-lucide="sparkles"></i>Campañas</button>
+        <button data-view="messages"><i data-lucide="megaphone"></i>Mensajes</button>
+        <button data-view="decorations"><i data-lucide="sparkles"></i>Decoraciones</button>
+        <button data-view="scheduler"><i data-lucide="calendar-clock"></i>Programador</button>
         <button data-view="audit"><i data-lucide="shield-check"></i>Auditoría</button>
         <button data-view="settings"><i data-lucide="settings"></i>Configuración</button>
       </nav>
@@ -125,20 +127,44 @@
         </div>
       </section>
 
-      <section class="view" id="view-campaign" hidden>
+      <section class="view" id="view-messages" hidden>
         <div class="panel glass">
-          <h3>Globo flotante y animaciones de campaña</h3>
-          <p class="panel-note">Configura el globo flotante, la cuenta regresiva y las animaciones ambientales.</p>
-          <label class="field"><span>Activar globo flotante</span><input type="checkbox" id="campShowBubble" checked></label>
-          <label class="field"><span>Activar animaciones</span><input type="checkbox" id="campShowAnimations" checked></label>
-          <label class="field"><span>Mostrar decoraciones de temporada</span><input type="checkbox" id="campShowDecorations" checked></label>
+          <h3>Mensaje global (barra superior)</h3>
+          <p class="panel-note">Texto de la franja superior de la tienda. Se refleja al guardar y también puede ser reemplazado por un evento programado.</p>
+          <label class="field"><span>Mostrar barra de anuncio</span><input type="checkbox" id="msgShowAnnouncement" checked></label>
+          <label class="field"><span>Texto del anuncio</span><input id="msgAnnouncement" placeholder="ENVÍO GRATIS EN PEDIDOS MAYORES A S/ 250"></label>
+        </div>
+        <div class="panel glass">
+          <h3>Globo flotante y cuenta regresiva</h3>
+          <p class="panel-note">Aviso emergente con llamado a la acción. La cuenta regresiva usa la fecha fin que definas aquí.</p>
+          <label class="field"><span>Activar globo flotante</span><input type="checkbox" id="msgShowBubble" checked></label>
+          <label class="field"><span>Badge</span><input id="msgBubbleLabel" placeholder="¡COMENZÓ!"></label>
+          <label class="field"><span>Titular</span><input id="msgBubbleTitle" placeholder="Damos inicio a la temporada"></label>
+          <label class="field"><span>Subtítulo</span><input id="msgBubbleSubtitle" placeholder="Hasta 40% OFF..."></label>
+          <div class="form-grid-2">
+            <label class="field"><span>Texto botón CTA</span><input id="msgBubbleCtaText" placeholder="Ver ofertas"></label>
+            <label class="field"><span>URL botón CTA</span><input id="msgBubbleCtaUrl" placeholder="#catalogo"></label>
+          </div>
+          <label class="field"><span>Mostrar cuenta regresiva</span><input type="checkbox" id="msgShowCountdown"></label>
+          <label class="field"><span>Fecha fin (ends_at)</span><input type="datetime-local" id="msgEndsAt"></label>
+          <button class="button button-dark" id="saveMessagesButton" type="button">Guardar mensajes</button>
+        </div>
+      </section>
+
+      <section class="view" id="view-decorations" hidden>
+        <div class="panel glass">
+          <h3>Decoraciones de temporada</h3>
+          <p class="panel-note">Tema visual, efecto de partículas, SVG y animaciones ambientales. Independiente de los mensajes globales.</p>
+          <div class="decor-status" id="decorStatus" aria-live="polite"></div>
+          <label class="field"><span>Mostrar decoraciones de temporada</span><input type="checkbox" id="decShowDecorations" checked></label>
+          <label class="field"><span>Activar animaciones</span><input type="checkbox" id="decShowAnimations" checked></label>
           <p class="panel-note">Si una decoración se puso por error, usa el apagado inmediato. No borra la campaña ni su configuración.</p>
           <div class="decor-actions">
             <button class="button" id="removeDecorButton" type="button"><i data-lucide="eye-off"></i> Quitar decoraciones ahora</button>
             <button class="button" id="restoreDecorButton" type="button"><i data-lucide="eye"></i> Reactivar decoraciones</button>
           </div>
           <label class="field"><span>Tema visual</span>
-            <select id="campThemeKey">
+            <select id="decThemeKey">
               <option value="default">Por defecto</option>
               <option value="navidad">Navidad</option>
               <option value="anio-nuevo">Año Nuevo</option>
@@ -148,22 +174,29 @@
             </select>
           </label>
           <label class="field"><span>Efecto visual</span>
-            <select id="campVisualEffect">
+            <select id="decVisualEffect">
               <option value="none">Ninguno</option>
               <option value="snow">Nieve (Navidad)</option>
               <option value="confetti">Confeti (Fiestas Patrias)</option>
               <option value="sparkles">Destellos (Año Nuevo)</option>
+              <option value="hearts">Corazones (San Valentín)</option>
             </select>
           </label>
-          <label class="field"><span>Mensaje global (barra superior)</span><input id="campAnnouncement" placeholder="ENVÍO GRATIS EN PEDIDOS MAYORES A S/ 250"></label>
-          <label class="field"><span>Badge</span><input id="campBubbleLabel" placeholder="✨ ¡COMENZÓ!"></label>
-          <label class="field"><span>Titular</span><input id="campBubbleTitle" placeholder="Damos inicio a la temporada"></label>
-          <label class="field"><span>Subtítulo</span><input id="campBubbleSubtitle" placeholder="Hasta 40% OFF..."></label>
-          <label class="field"><span>Texto botón CTA</span><input id="campBubbleCtaText" placeholder="Ver ofertas"></label>
-          <label class="field"><span>URL botón CTA</span><input id="campBubbleCtaUrl" placeholder="#catalogo"></label>
-          <label class="field"><span>Mostrar cuenta regresiva</span><input type="checkbox" id="campShowCountdown"></label>
-          <label class="field"><span>Fecha fin (ends_at)</span><input type="datetime-local" id="campEndsAt"></label>
-          <button class="button button-dark" id="saveCampaignButton" type="button">Guardar campaña</button>
+          <button class="button button-dark" id="saveDecorationsButton" type="button">Guardar decoraciones</button>
+        </div>
+      </section>
+
+      <section class="view" id="view-scheduler" hidden>
+        <div class="panel glass">
+          <div class="panel-head">
+            <h3>Programador de eventos</h3>
+            <button class="button" id="newScheduleButton" type="button"><i data-lucide="plus"></i> Nuevo evento</button>
+          </div>
+          <p class="panel-note">Programa una campaña para que inicie sola en la fecha y hora elegidas, y finalice automáticamente. Ejemplo: “Navidad desde el 1 de diciembre a las 00:00”.</p>
+          <div class="schedule-next" id="scheduleNext" aria-live="polite"></div>
+          <div class="table-wrap">
+            <table id="scheduleTable"></table>
+          </div>
         </div>
       </section>
 
@@ -245,12 +278,48 @@
         <button class="button button-dark modal-submit" type="submit">Guardar</button>
       </form>
     </section>
+
+    <section class="modal" id="scheduleModal" role="dialog" aria-modal="true" aria-labelledby="scheduleModalTitle" hidden>
+      <button class="close-button modal-close" data-close-modal aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <h2 id="scheduleModalTitle">Programar evento</h2>
+      <form id="scheduleForm">
+        <input type="hidden" id="scheduleId">
+        <label class="field"><span>Nombre del evento</span><input id="scheduleName" required placeholder="Campaña Navidad 2026"></label>
+        <div class="form-grid-2">
+          <label class="field"><span>Inicia el</span><input type="datetime-local" id="scheduleStart" required></label>
+          <label class="field"><span>Finaliza el (opcional)</span><input type="datetime-local" id="scheduleEnd"></label>
+        </div>
+        <label class="field"><span>Tema a aplicar</span>
+          <select id="scheduleTheme">
+            <option value="default">Por defecto</option>
+            <option value="navidad">Navidad</option>
+            <option value="anio-nuevo">Año Nuevo</option>
+            <option value="cyber">Cyber / Black Friday</option>
+            <option value="san-valentin">San Valentín</option>
+            <option value="fiestas-patrias">Fiestas Patrias</option>
+          </select>
+        </label>
+        <label class="field"><span>Mensaje global</span><input id="scheduleAnnouncement" placeholder="¡EMPIEZA LA CAMPAÑA!"></label>
+        <div class="form-grid-2">
+          <label class="field"><span>Badge del globo</span><input id="scheduleBubbleLabel"></label>
+          <label class="field"><span>Titular del globo</span><input id="scheduleBubbleTitle"></label>
+        </div>
+        <label class="field"><span>Mostrar decoraciones</span><input type="checkbox" id="scheduleDecorations" checked></label>
+        <label class="field"><span>Mostrar globo flotante</span><input type="checkbox" id="scheduleBubble" checked></label>
+        <label class="field"><span>Evento habilitado</span><input type="checkbox" id="scheduleEnabled" checked></label>
+        <p class="form-error" id="scheduleError" role="alert"></p>
+        <div class="decor-actions">
+          <button class="button button-dark modal-submit schedule-submit" type="submit">Guardar evento</button>
+          <button class="button" id="useCurrentConfigButton" type="button">Usar configuración actual</button>
+        </div>
+      </form>
+    </section>
   </div>
 
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://unpkg.com/chart.js@4/dist/chart.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js" defer></script>
-  <script src="admin.js?v=2" defer></script>
+  <script src="admin.js?v=3" defer></script>
 </body>
 </html>

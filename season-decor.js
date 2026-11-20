@@ -535,14 +535,15 @@
   }, { passive: true });
   window.addEventListener("scroll", () => { scrollPos = window.scrollY; }, { passive: true });
   window.addEventListener("blur", () => { targetPointerX = 0; targetPointerY = 0; });
-  window.addEventListener("nordico:seasonchange", () => {
-    readCampaignFlags();
+  window.addEventListener("nordico:seasonchange", (event) => {
+    const detail = event && event.detail;
+    if (detail && typeof detail === "object") applyCampaignFlags(detail);
     render();
   });
   window.addEventListener("storage", (event) => {
-    if (event.key !== "nordico_campaign") return;
-    readCampaignFlags();
-    render();
+    if (event.key !== "nordico_campaign" && event.key !== "nordico_schedule") return;
+    // app.js recalcula la campaña efectiva (incluidos eventos programados)
+    // y emite `nordico:seasonchange` con el estado ya resuelto.
   });
   document.addEventListener("visibilitychange", refreshLifecycle);
   new MutationObserver(refreshLifecycle).observe(document.body, {
