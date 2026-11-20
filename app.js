@@ -329,7 +329,6 @@ function renderProducts(resetPage = false) {
               <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" loading="lazy">
               ${product.badge ? `<span class="product-badge">${escapeHtml(product.badge)}</span>` : ""}
               <button class="fav-button ${isFavorite(product.id) ? "active" : ""}" data-fav="${product.id}" aria-label="${isFavorite(product.id) ? "Quitar de favoritos" : "Agregar a favoritos"}" type="button"><i data-lucide="heart"></i></button>
-              <button class="add-button" data-add="${product.id}" aria-label="Agregar ${escapeHtml(product.name)} al carrito" ${stock < 1 ? "disabled" : ""}><i data-lucide="${stock < 1 ? "check" : "plus"}"></i></button>
             </div>
             <div class="product-info">
               <div class="product-meta"><span>${escapeHtml(product.category)}</span><span>${stock > 0 ? `${stock} disponibles` : "Agotado"}</span></div>
@@ -345,11 +344,10 @@ function renderProducts(resetPage = false) {
             </ul>
             <div class="card-back-meta">
               <span>${escapeHtml(product.category)}</span>
-              <strong>${money(product.price)}</strong>
             </div>
-            <button class="add-button card-back-add" data-add="${product.id}" aria-label="Agregar ${escapeHtml(product.name)} al carrito" ${stock < 1 ? "disabled" : ""}><i data-lucide="${stock < 1 ? "check" : "plus"}"></i></button>
           </div>
         </div>
+        <button class="add-button card-fixed-add" data-add="${product.id}" aria-label="Agregar ${escapeHtml(product.name)} al carrito" ${stock < 1 ? "disabled" : ""} type="button"><i data-lucide="${stock < 1 ? "check" : "plus"}"></i></button>
       </article>`;
     }).join("");
   }
@@ -928,7 +926,7 @@ const POLICIES = {
       <h3>¿Dónde se guardan mis datos?</h3>
       <p>En tu navegador mediante localStorage. No hay base de datos externa ni servidor. Tus datos permanecen en este dispositivo.</p>
       <h3>¿Puedo imprimir mi boleta?</h3>
-      <p>Sí. Al confirmar la compra se genera una boleta en formato ticketera (80 mm) que puedes imprimir o guardar como PDF desde el navegador.</p>
+      <p>Sí. Al confirmar la compra se genera una boleta en formato ticketera (80 mm) que puedes descargar como PDF o imprimir desde el navegador.</p>
       <h3>¿Los pagos son reales?</h3>
       <p>No. Es una demostración educativa; los pagos son simulados y no se procesan cargos.</p>
       <h3>¿Cómo vacío mi carrito?</h3>
@@ -1014,7 +1012,10 @@ function receiptHtml(order) {
   `;
 }
 
+let currentReceiptOrder = null;
+
 function showReceipt(order) {
+  currentReceiptOrder = order;
   $("#receiptContent").innerHTML = receiptHtml(order);
   openModal($("#receiptModal"));
   refreshIcons();
@@ -1043,6 +1044,77 @@ function printReceipt() {
   win.document.close();
   win.focus();
   win.print();
+}
+
+function pdfText(value, max = 44) {
+  const safe = String(value ?? "").replace(/[^\x20-\x7E\u00A0-\u00FF]/g, "?");
+  return safe.length > max ? `${safe.slice(0, max - 3)}...` : safe;
+}
+
+function downloadReceiptPdf() {
+  const order = currentReceiptOrder;
+  if (!order) return;
+  const JsPDF = window.jspdf && window.jspdf.jsPDF;
+  if (!JsPDF) {
+    showToast("No se pudo cargar el generador de PDF. Se abrirá la versión para imprimir.", "triangle-alert");
+    printReceipt();
+    return;
+  }
+
+  const width = 80;
+  const margin = 5;
+  const lineHeight = 5;
+  const pageHeight = Math.max(150, 95 + order.items.length * 11);
+  const doc = new JsPDF({ unit: "mm", format: [width, pageHeight], compress: true });
+  doc.setProperties({ title: `Boleta ${order.id}`, subject: "Comprobante de pago NÓRDICO STUDIO" });
+  doc.setTextColor(20, 20, 20);
+
+  let y = 10;
+  const write = (text, x, align = "left", size = 8, bold = false) => {
+    doc.setFont("courier", bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    doc.text(pdfText(text, 60), x, y, { align });
+  };
+  const single = (text, size = 8, bold = false, align = "left") => {
+    write(text, align === "center" ? width / 2 : margin, align, size, bold);
+    y += lineHeight;
+  };
+  const row = (leftText, rightText, size = 8, bold = false) => {
+    write(leftText, margin, "left", size, bold);
+    write(rightText, width - margin, "right", size, bold);
+    y += lineHeight;
+  };
+  const divider = () => {
+    y += 1;
+    doc.setDrawColor(0);
+    doc.line(margin, y, width - margin, y);
+    y += lineHeight;
+  };
+
+  row("NORDICO STUDIO", "RUC 20XXXXXXXXX", 9, true);
+  single("BOLETA DE VENTA", 11, true, "center");
+  y += 1;
+  row(pdfText(`Pedido ${order.id}`, 24), pdfText(new Date(order.date).toLocaleString("es-PE"), 18));
+  single(pdfText(`Cliente: ${currentUser ? currentUser.name : "Invitado"}`));
+  single(pdfText(`Correo: ${currentUser ? currentUser.email : ""}`));
+  single(pdfText(`Direccion: ${order.address}`));
+  single(pdfText(`Pago: ${order.payment}`));
+  divider();
+  row("Producto", "Total", 8, true);
+  divider();
+  order.items.forEach((item) => {
+    single(pdfText(item.name, 44));
+    row(pdfText(`${item.quantity} x ${money(item.price)}`, 26), pdfText(money(item.price * item.quantity), 16));
+  });
+  divider();
+  row("Subtotal", money(order.subtotal));
+  row("IGV (18%)", money(order.tax));
+  row("TOTAL", money(order.total), 10, true);
+  y += 3;
+  single("Gracias por tu compra.", 8, false, "center");
+  single("Conserve este comprobante.", 8, false, "center");
+
+  doc.save(`boleta-${order.id}.pdf`);
 }
 
 $("#categoryTabs").addEventListener("click", (event) => {
@@ -1318,6 +1390,7 @@ window.addEventListener("resize", () => {
   setBubblePosition(rect.left, rect.top);
 });
 document.querySelectorAll("[data-open-policy]").forEach((button) => button.addEventListener("click", () => showPolicy(button.dataset.openPolicy)));
+$("#downloadReceiptButton").addEventListener("click", downloadReceiptPdf);
 $("#printReceiptButton").addEventListener("click", printReceipt);
 $("#closeReceiptButton").addEventListener("click", closeModal);
 $("#ordersList").addEventListener("click", (event) => {

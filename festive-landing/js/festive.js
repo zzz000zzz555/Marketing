@@ -30,20 +30,58 @@ if (!reduced) {
   draw();
 }
 
-// Music button
+// Music control
 const btn = document.getElementById("musicBtn");
 const audio = document.getElementById("ambientAudio");
-let playing = false;
-btn.addEventListener("click", () => {
-  if (playing) {
-    audio.pause();
-    btn.classList.remove("playing");
-    btn.querySelector("i").textContent = "♪";
+const control = document.getElementById("musicControl");
+const volume = document.getElementById("musicVolume");
+const icon = btn.querySelector("i");
+
+try {
+  const savedVolume = Number(localStorage.getItem("nordico_festive_volume"));
+  if (Number.isFinite(savedVolume) && savedVolume >= 0 && savedVolume <= 1) {
+    audio.volume = savedVolume;
+    volume.value = savedVolume;
   } else {
     audio.volume = 0.4;
-    audio.play().catch(() => {});
-    btn.classList.add("playing");
-    btn.querySelector("i").textContent = "❚❚";
   }
-  playing = !playing;
+} catch (e) {
+  audio.volume = 0.4;
+}
+
+function syncMusicUI() {
+  const playing = !audio.paused;
+  control.classList.toggle("playing", playing);
+  btn.classList.toggle("playing", playing);
+  btn.setAttribute("aria-pressed", String(playing));
+  btn.setAttribute("aria-label", playing ? "Pausar música ambiental" : "Reproducir música ambiental");
+  icon.textContent = playing ? "❚❚" : "♪";
+}
+
+btn.addEventListener("click", async () => {
+  if (!audio.paused) {
+    audio.pause();
+    return;
+  }
+  try {
+    await audio.play();
+  } catch (e) {
+    btn.setAttribute("aria-label", "Música no disponible en este navegador");
+    control.classList.remove("playing");
+  }
 });
+
+audio.addEventListener("play", syncMusicUI);
+audio.addEventListener("pause", syncMusicUI);
+audio.addEventListener("error", () => {
+  btn.disabled = true;
+  btn.setAttribute("aria-label", "Música no disponible");
+  control.classList.remove("playing");
+});
+
+volume.addEventListener("input", () => {
+  audio.volume = Number(volume.value);
+  try { localStorage.setItem("nordico_festive_volume", volume.value); } catch (e) {}
+});
+
+syncMusicUI();
