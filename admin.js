@@ -234,6 +234,7 @@ function renderView(view) {
 
 // ---------- Dashboard ----------
 function renderDashboard() {
+  if (!getAllOrders().length) seedDemoData();
   const products = readStorage(STORAGE_KEYS.products, []);
   const orders = getAllOrders();
   const users = readStorage(STORAGE_KEYS.users, []);

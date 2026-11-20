@@ -916,6 +916,7 @@ function applyTheme(dark) {
   document.body.classList.toggle("dark", dark);
   if (themeToggle) themeToggle.checked = dark;
   try { localStorage.setItem("nordico_theme", dark ? "dark" : "light"); } catch (e) {}
+  syncHeaderThemeButton();
 }
 
 function applyFontSize(size) {
@@ -941,6 +942,19 @@ try {
 }
 
 themeToggle?.addEventListener("change", () => applyTheme(themeToggle.checked));
+const headerThemeBtn = $("#themeToggleButton");
+function syncHeaderThemeButton() {
+  if (!headerThemeBtn) return;
+  const dark = document.body.classList.contains("dark");
+  headerThemeBtn.innerHTML = dark ? '<i data-lucide="sun"></i>' : '<i data-lucide="moon"></i>';
+  refreshIcons();
+}
+headerThemeBtn?.addEventListener("click", () => {
+  applyTheme(!document.body.classList.contains("dark"));
+  syncHeaderThemeButton();
+});
+// sync on load
+setTimeout(() => syncHeaderThemeButton(), 0);
 fontSizeSelect?.addEventListener("change", () => applyFontSize(fontSizeSelect.value));
 languageSelect?.addEventListener("change", () => {
   const lang = languageSelect.value;
