@@ -48,6 +48,38 @@ const baseProducts = [
   { id: 30, name: "Altavoz inteligente", price: 259, category: "Tecnología", stock: 8, description: "Tu hogar, al comando de voz.", image: "https://images.unsplash.com/photo-1543512214-318c7553f230?auto=format&fit=crop&w=800&q=80", badge: "" }
 ];
 
+// ---------- Enriquecimiento de productos (Paso 1) ----------
+const CATEGORY_SPECS = {
+  "Tecnología": { material: "ABS + Aluminio", dimensions: "Variable según modelo", weight: "0.2 - 0.8 kg", color: "Negro / Plata", origin: "China", warranty: "12 meses", care: "Limpiar con paño seco", packageContents: ["Producto", "Cable USB", "Manual de usuario"] },
+  "Hogar": { material: "Cerámica / Madera", dimensions: "Variable", weight: "0.3 - 1.5 kg", color: "Blanco / Natural", origin: "Perú", warranty: "6 meses", care: "Lavar a mano", packageContents: ["Producto", "Manual"] },
+  "Moda": { material: "Algodón / Cuero", dimensions: "Talla única / Ajustable", weight: "0.1 - 0.4 kg", color: "Varios", origin: "Perú", warranty: "30 días", care: "Lavar a máquina ciclo suave", packageContents: ["Producto", "Etiqueta de cuidado"] },
+  "Deportes": { material: "Poliéster / Goma EVA", dimensions: "Estándar", weight: "0.2 - 1.0 kg", color: "Negro / Gris", origin: "China", warranty: "6 meses", care: "Limpiar con paño húmedo", packageContents: ["Producto", "Manual"] },
+  "Belleza": { material: "Vidrio / Plástico reciclable", dimensions: "50 - 200 ml", weight: "0.1 - 0.3 kg", color: "Transparente", origin: "Perú", warranty: "30 días", care: "Mantener en lugar fresco", packageContents: ["Producto", "Caja", "Folleto"] },
+  "Accesorios": { material: "Cuero / Acero", dimensions: "Ajustable", weight: "0.05 - 0.3 kg", color: "Negro / Marrón", origin: "Perú", warranty: "6 meses", care: "Limpiar con paño seco", packageContents: ["Producto", "Bolsa de protección"] }
+};
+
+function enrichProduct(product) {
+  const spec = CATEGORY_SPECS[product.category] || CATEGORY_SPECS["Accesorios"];
+  const rating = +(4.2 + Math.random() * 0.7).toFixed(1);
+  const reviewCount = Math.floor(12 + Math.random() * 80);
+  return {
+    ...product,
+    sku: `ND-${String(product.id).padStart(4, "0")}`,
+    shortDescription: product.description + " Diseñado para tu día a día.",
+    benefits: [
+      "Materiales de alta calidad seleccionados con cuidado.",
+      "Diseño funcional que se adapta a tu rutina.",
+      "Durabilidad comprobada en uso diario.",
+      "Envío rápido y seguro a todo el Perú."
+    ],
+    spec,
+    rating,
+    reviewCount,
+    deliveryEstimate: "Lima Metropolitana: 1-2 días · Provincias: 3-7 días",
+    guarantee: "Garantía de 12 meses · Cambios fáciles hasta 30 días"
+  };
+}
+
 let products = baseProducts.map(enrichProduct);
 async function loadProductsFromSupabase() {
   if (!window.supabase || !supabaseClient) return;
@@ -108,38 +140,6 @@ let currentPage = 1;
 const favoritesKey = () => `nordico_favorites_${currentUser ? currentUser.email : "guest"}`;
 let favorites = readStorage(favoritesKey(), []);
 let lastOrders = [];
-
-// ---------- Enriquecimiento de productos (Paso 1) ----------
-const CATEGORY_SPECS = {
-  "Tecnología": { material: "ABS + Aluminio", dimensions: "Variable según modelo", weight: "0.2 - 0.8 kg", color: "Negro / Plata", origin: "China", warranty: "12 meses", care: "Limpiar con paño seco", packageContents: ["Producto", "Cable USB", "Manual de usuario"] },
-  "Hogar": { material: "Cerámica / Madera", dimensions: "Variable", weight: "0.3 - 1.5 kg", color: "Blanco / Natural", origin: "Perú", warranty: "6 meses", care: "Lavar a mano", packageContents: ["Producto", "Manual"] },
-  "Moda": { material: "Algodón / Cuero", dimensions: "Talla única / Ajustable", weight: "0.1 - 0.4 kg", color: "Varios", origin: "Perú", warranty: "30 días", care: "Lavar a máquina ciclo suave", packageContents: ["Producto", "Etiqueta de cuidado"] },
-  "Deportes": { material: "Poliéster / Goma EVA", dimensions: "Estándar", weight: "0.2 - 1.0 kg", color: "Negro / Gris", origin: "China", warranty: "6 meses", care: "Limpiar con paño húmedo", packageContents: ["Producto", "Manual"] },
-  "Belleza": { material: "Vidrio / Plástico reciclable", dimensions: "50 - 200 ml", weight: "0.1 - 0.3 kg", color: "Transparente", origin: "Perú", warranty: "30 días", care: "Mantener en lugar fresco", packageContents: ["Producto", "Caja", "Folleto"] },
-  "Accesorios": { material: "Cuero / Acero", dimensions: "Ajustable", weight: "0.05 - 0.3 kg", color: "Negro / Marrón", origin: "Perú", warranty: "6 meses", care: "Limpiar con paño seco", packageContents: ["Producto", "Bolsa de protección"] }
-};
-
-function enrichProduct(product) {
-  const spec = CATEGORY_SPECS[product.category] || CATEGORY_SPECS["Accesorios"];
-  const rating = +(4.2 + Math.random() * 0.7).toFixed(1);
-  const reviewCount = Math.floor(12 + Math.random() * 80);
-  return {
-    ...product,
-    sku: `ND-${String(product.id).padStart(4, "0")}`,
-    shortDescription: product.description + " Diseñado para tu día a día.",
-    benefits: [
-      "Materiales de alta calidad seleccionados con cuidado.",
-      "Diseño funcional que se adapta a tu rutina.",
-      "Durabilidad comprobada en uso diario.",
-      "Envío rápido y seguro a todo el Perú."
-    ],
-    spec,
-    rating,
-    reviewCount,
-    deliveryEstimate: "Lima Metropolitana: 1-2 días · Provincias: 3-7 días",
-    guarantee: "Garantía de 12 meses · Cambios fáciles hasta 30 días"
-  };
-}
 
 // ---------- Combos / Packs (Paso 1) ----------
 const bundles = [
