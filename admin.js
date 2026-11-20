@@ -254,7 +254,7 @@ function renderDashboard() {
     ? `<thead><tr><th>Producto</th><th>Stock</th></tr></thead><tbody>${low.map((p) => `<tr><td>${escapeHtml(p.name)}</td><td class="badge low">${readStorage(STORAGE_KEYS.stock, {})[p.id] ?? p.stock}</td></tr>`).join("")}</tbody>`
     : `<tbody><tr><td>Sin productos con stock bajo</td></tr></tbody>`;
 
-  renderCharts(products, orders, stock);
+  renderCharts(products, orders, readStorage(STORAGE_KEYS.stock, {}));
 }
 
 const chartInstances = {};
