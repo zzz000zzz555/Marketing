@@ -1216,13 +1216,13 @@ function initCampaignBubble() {
   cta.href = activeCampaign.bubbleCtaUrl || "#catalogo";
   const countdown = $("#campaignCountdown");
   if (activeCampaign.showCountdown && activeCampaign.endsAt) {
-    countdown.hidden = false;
+    countdown.removeAttribute("hidden");
     updateCampaignCountdown();
     setInterval(updateCampaignCountdown, 1000);
   } else {
-    countdown.hidden = true;
+    countdown.setAttribute("hidden", "");
   }
-  bubble.hidden = false;
+  bubble.removeAttribute("hidden");
   setTimeout(() => bubble.classList.add("show"), 1500);
   $("#campaignBubbleClose").addEventListener("click", () => {
     bubble.classList.remove("show");
