@@ -82,6 +82,7 @@ function enrichProduct(product) {
 
 let products = baseProducts.map(enrichProduct);
 async function loadProductsFromSupabase() {
+  if (typeof initSupabase === "function") initSupabase();
   if (!window.supabase || !supabaseClient) return;
   try {
     const { data, error } = await supabaseClient.from('products').select('*').order('id');
@@ -678,6 +679,7 @@ async function submitOrder(event) {
   orders[currentUser.email] = [...(orders[currentUser.email] || []), order];
   writeStorage(STORAGE_KEYS.orders, orders);
   // Sync to Supabase
+  if (typeof initSupabase === "function") initSupabase();
   if (supabaseClient) {
     try {
       await supabaseClient.from('orders').insert({
@@ -713,6 +715,7 @@ async function submitOrder(event) {
 async function showOrders() {
   if (!currentUser) return;
   let orders = readStorage(STORAGE_KEYS.orders, {})[currentUser.email] || [];
+  if (typeof initSupabase === "function") initSupabase();
   if (supabaseClient) {
     try {
       const { data } = await supabaseClient.from('orders').select('*, order_items(*)').eq('customer_email', currentUser.email).order('date', { ascending: false });
@@ -925,6 +928,30 @@ const POLICIES = {
       <p>Al ser una demostración local, no hay recuperación. Puedes crear una nueva cuenta o borrar los datos del navegador.</p>
       <h3>¿Cómo borro mis datos?</h3>
       <p>Desde Configuración → "Borrar datos del navegador" o limpiando el almacenamiento local del sitio.</p>
+    `
+  },
+  reclamations: {
+    title: "Libro de Reclamaciones",
+    content: `
+      <h3>¿Qué es el Libro de Reclamaciones?</h3>
+      <p>Es un registro obligatorio conforme al Código de Protección y Defensa del Consumidor (Ley N.º 29571) y el Reglamento del Libro de Reclamaciones (D.S. N.º 011-2011-PCM). Aquí puedes registrar reclamos o quejas sobre productos o servicios.</p>
+      <h3>Diferencia entre reclamo y queja</h3>
+      <ul>
+        <li><strong>Reclamo:</strong> disconformidad relacionada con los productos o servicios brindados.</li>
+        <li><strong>Queja:</strong> malestar respecto a la atención al público o al trato recibido.</li>
+      </ul>
+      <h3>Datos del proveedor</h3>
+      <p>NÓRDICO STUDIO S.A.C. · RUC 20600000000 · Domicilio fiscal: Av. Ejemplo 123, Lima, Perú · Correo: reclamos@nordico.pe.</p>
+      <h3>¿Cómo registrar tu reclamo?</h3>
+      <ol>
+        <li>Envía un correo a reclamos@nordico.pe con tu nombre completo, DNI o CE, correo, teléfono, número de pedido, descripción del hecho y tu pedido concreto.</li>
+        <li>Recibirás una constancia con un código único de reclamo dentro de las 24 horas siguientes.</li>
+        <li>Resolveremos en un plazo máximo de 15 días hábiles, prorrogable por 15 días hábiles adicionales por causas justificadas, informándote oportunamente.</li>
+      </ol>
+      <h3>Horario de atención</h3>
+      <p>Lunes a viernes de 9:00 a 18:00 h (hora de Lima). Los reclamos presentados fuera de horario se consideran recibidos el siguiente día hábil.</p>
+      <h3>Recomendaciones</h3>
+      <p>Conserva tu número de pedido y la boleta. Este libro es virtual y su uso es gratuito. La presentación de un reclamo no impide acudir a INDECOPI u otras vías legales.</p>
     `
   }
 };

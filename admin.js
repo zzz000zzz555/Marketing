@@ -238,6 +238,7 @@ async function renderView(view) {
 
 // ---------- Dashboard ----------
 async function renderDashboard() {
+  if (typeof initSupabase === "function") initSupabase();
   let products = readStorage(STORAGE_KEYS.products, []);
   let orders = getAllOrders();
   if (window.supabase && supabaseClient) {
@@ -428,6 +429,7 @@ function deleteCategory(slug) {
 
 // ---------- Products ----------
 async function renderProducts() {
+  if (typeof initSupabase === "function") initSupabase();
   let products = readStorage(STORAGE_KEYS.products, []);
   if (window.supabase && supabaseClient) {
     try {
@@ -519,6 +521,7 @@ function deleteProduct(id) {
 
 // ---------- Orders ----------
 async function renderOrders() {
+  if (typeof initSupabase === "function") initSupabase();
   let orders = getAllOrders();
   if (window.supabase && supabaseClient) {
     try {
