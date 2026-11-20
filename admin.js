@@ -663,6 +663,15 @@ function startSessionTimer() {
   }, 1000);
 }
 
+function applyAdminTheme(dark) {
+  document.body.classList.toggle("admin-dark", dark);
+  const btn = $("#themeToggleButton");
+  if (btn) {
+    btn.innerHTML = dark ? '<i data-lucide="moon"></i><span>Nocturno</span>' : '<i data-lucide="sun"></i><span>Diurno</span>';
+    refreshIcons();
+  }
+}
+
 // ---------- Icons ----------
 function refreshIcons() {
   if (window.lucide) window.lucide.createIcons();
@@ -720,6 +729,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#backupButton").addEventListener("click", backupAll);
   $("#restoreFile").addEventListener("change", (e) => {
     if (e.target.files[0]) restoreBackup(e.target.files[0]);
+  });
+  // Theme
+  applyAdminTheme(localStorage.getItem("nordico_admin_theme") === "dark");
+  $("#themeToggleButton")?.addEventListener("click", () => {
+    const isDark = !document.body.classList.contains("admin-dark");
+    applyAdminTheme(isDark);
+    try { localStorage.setItem("nordico_admin_theme", isDark ? "dark" : "light"); } catch (e) {}
   });
   // Session check
   if (getSession()) showApp(); else showLogin();
