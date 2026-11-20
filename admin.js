@@ -583,6 +583,62 @@ function restoreBackup(file) {
   reader.readAsText(file);
 }
 
+// ---------- Seed demo data ----------
+function seedDemoData() {
+  const products = readStorage(STORAGE_KEYS.products, []);
+  if (!products.length) return;
+  // Users
+  const users = readStorage(STORAGE_KEYS.users, []);
+  if (!users.some((u) => u.email === "cliente1@demo.com")) {
+    users.push({ name: "María García", email: "cliente1@demo.com", password: "123456" });
+    users.push({ name: "Carlos López", email: "cliente2@demo.com", password: "123456" });
+    users.push({ name: "Ana Torres", email: "cliente3@demo.com", password: "123456" });
+    writeStorage(STORAGE_KEYS.users, users);
+  }
+  const emails = ["demo@tienda.com", "cliente1@demo.com", "cliente2@demo.com", "cliente3@demo.com"];
+  const addresses = ["Av. Larco 123, Miraflores", "Jr. de la Unión 456, Cercado", "Calle Los Pinos 789, San Isidro", "Av. Arequipa 321, Lince"];
+  const payments = ["Tarjeta de crédito", "Transferencia bancaria", "Pago contra entrega"];
+  const ordersMap = readStorage(STORAGE_KEYS.orders, {});
+  emails.forEach((email) => {
+    const existing = ordersMap[email] || [];
+    const newOrders = [];
+    for (let i = 0; i < 6; i++) {
+      const items = [];
+      const count = 1 + Math.floor(Math.random() * 3);
+      const used = new Set();
+      for (let j = 0; j < count; j++) {
+        const p = products[Math.floor(Math.random() * products.length)];
+        if (used.has(p.id)) continue;
+        used.add(p.id);
+        items.push({ id: p.id, name: p.name, price: p.price, quantity: 1 + Math.floor(Math.random() * 2) });
+      }
+      if (!items.length) continue;
+      const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
+      const tax = subtotal * 0.18;
+      const date = new Date(Date.now() - Math.floor(Math.random() * 14) * 86400000);
+      newOrders.push({
+        id: `ND-${Date.now().toString().slice(-6)}${i}`,
+        date: date.toISOString(),
+        items,
+        subtotal,
+        tax,
+        total: subtotal + tax,
+        address: addresses[Math.floor(Math.random() * addresses.length)],
+        payment: payments[Math.floor(Math.random() * payments.length)]
+      });
+    }
+    ordersMap[email] = [...existing, ...newOrders];
+    // Favorites
+    const favs = [products[0].id, products[3].id, products[5].id];
+    writeStorage(`nordico_favorites_${email}`, favs);
+  });
+  writeStorage(STORAGE_KEYS.orders, ordersMap);
+  // Stock adjust
+  const stock = readStorage(STORAGE_KEYS.stock, {});
+  products.forEach((p) => { if (!Number.isInteger(stock[p.id])) stock[p.id] = p.stock; });
+  writeStorage(STORAGE_KEYS.stock, stock);
+}
+
 // ---------- Toast ----------
 function showToast(message, isError = false) {
   // Simple alert fallback for admin
@@ -631,6 +687,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     showLogin();
   });
   // Refresh
+  $("#seedDemoButton")?.addEventListener("click", () => {
+    seedDemoData();
+    renderView("dashboard");
+    showToast("Datos de prueba insertados");
+  });
   $("#refreshButton").addEventListener("click", () => {
     const active = $$(".sidebar-nav button.active")[0]?.dataset.view || "dashboard";
     renderView(active);

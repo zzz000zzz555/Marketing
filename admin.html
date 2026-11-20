@@ -56,6 +56,13 @@
       </header>
 
       <section class="view" id="view-dashboard">
+        <div class="panel glass" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0;">Datos de prueba</h3>
+            <p class="panel-note" style="margin:4px 0 0;">Genera pedidos, usuarios y favoritos de ejemplo para visualizar los gráficos.</p>
+          </div>
+          <button class="button button-dark" id="seedDemoButton" type="button"><i data-lucide="database"></i> Insertar datos de prueba</button>
+        </div>
         <div class="stats-grid">
           <div class="stat-card glass"><span>Productos</span><strong id="statProducts">0</strong><small id="statProductsSub">—</small></div>
           <div class="stat-card glass"><span>Pedidos</span><strong id="statOrders">0</strong><small id="statOrdersSub">—</small></div>
