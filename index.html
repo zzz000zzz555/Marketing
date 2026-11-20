@@ -16,6 +16,7 @@
 <body>
   <div class="announcement">ENVÍO GRATIS EN PEDIDOS MAYORES A S/ 250</div>
   <header class="site-header">
+    <button class="hamburger" id="hamburgerButton" aria-label="Abrir menú" aria-expanded="false" type="button"><i data-lucide="menu"></i></button>
     <a class="wordmark" href="#" aria-label="Nórdico, inicio">NÓRDICO<span>.</span></a>
     <nav class="main-nav" aria-label="Navegación principal">
       <a href="#catalogo">Tienda</a>
@@ -179,10 +180,74 @@
       </div>
     </section>
   </div>
+  <div class="side-overlay" id="sideOverlay"></div>
+  <aside class="side-drawer" id="sideDrawer" aria-hidden="true" aria-label="Menú lateral">
+    <div class="side-header">
+      <a class="wordmark" href="#">NÓRDICO<span>.</span></a>
+      <button class="close-button" data-close-side aria-label="Cerrar menú"><i data-lucide="x"></i></button>
+    </div>
+    <div class="side-user">
+      <i data-lucide="user-round"></i>
+      <div>
+        <strong id="sideUserName">Invitado</strong>
+        <span id="sideUserEmail">Inicia sesión para comprar</span>
+      </div>
+      <button class="button" id="sideAuthButton" type="button">Ingresar</button>
+    </div>
+    <nav class="side-nav" aria-label="Menú">
+      <a href="#catalogo" data-side-close><i data-lucide="store"></i>Tienda</a>
+      <a href="#catalogo" data-category-link="Tecnología" data-side-close><i data-lucide="cpu"></i>Tecnología</a>
+      <a href="#catalogo" data-category-link="Hogar" data-side-close><i data-lucide="home"></i>Hogar</a>
+      <a href="#catalogo" data-category-link="Moda" data-side-close><i data-lucide="shirt"></i>Moda</a>
+      <a href="#catalogo" data-category-link="Deportes" data-side-close><i data-lucide="dumbbell"></i>Deportes</a>
+      <a href="#catalogo" data-category-link="Belleza" data-side-close><i data-lucide="sparkles"></i>Belleza</a>
+      <a href="#catalogo" data-category-link="Accesorios" data-side-close><i data-lucide="watch"></i>Accesorios</a>
+      <button type="button" data-open-orders><i data-lucide="package-check"></i>Mis pedidos</button>
+      <details>
+        <summary><i data-lucide="settings"></i>Configuración</summary>
+        <div class="side-sub">
+          <label class="side-toggle"><span>Tema oscuro</span><input type="checkbox" id="themeToggle"></label>
+          <label class="side-toggle"><span>Tamaño de letra</span>
+            <select id="fontSizeSelect"><option value="normal">Normal</option><option value="large">Grande</option><option value="xlarge">Extra grande</option></select>
+          </label>
+          <label class="side-toggle"><span>Idioma</span>
+            <select id="languageSelect"><option value="es">Español</option><option value="en">English</option></select>
+          </label>
+        </div>
+      </details>
+      <details>
+        <summary><i data-lucide="help-circle"></i>Ayuda</summary>
+        <div class="side-sub">
+          <button type="button" data-open-policy="faq">Preguntas frecuentes</button>
+          <button type="button" data-open-policy="shipping">Envíos y devoluciones</button>
+          <a href="mailto:soporte@nordico.pe" data-side-close><i data-lucide="mail"></i>Contacto</a>
+        </div>
+      </details>
+      <details>
+        <summary><i data-lucide="shield"></i>Legal</summary>
+        <div class="side-sub">
+          <button type="button" data-open-policy="terms">Términos y condiciones</button>
+          <button type="button" data-open-policy="privacy">Política de privacidad</button>
+          <button type="button" data-open-policy="security">Seguridad</button>
+        </div>
+      </details>
+    </nav>
+    <div class="side-footer">
+      <span>Síguenos</span>
+      <div class="social-links">
+        <a href="#" aria-label="Instagram"><i data-lucide="instagram"></i></a>
+        <a href="#" aria-label="Facebook"><i data-lucide="facebook"></i></a>
+        <a href="#" aria-label="TikTok"><i data-lucide="music-2"></i></a>
+      </div>
+      <small>© 2025 NÓRDICO STUDIO</small>
+    </div>
+  </aside>
+
   <button class="cart-bubble" id="cartBubble" aria-label="Abrir carrito" type="button">
     <i data-lucide="shopping-bag"></i>
     <span class="cart-bubble-count" id="cartBubbleCount">0</span>
   </button>
+  <button class="back-to-top" id="backToTop" aria-label="Volver arriba" type="button"><i data-lucide="arrow-up"></i></button>
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>

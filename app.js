@@ -84,6 +84,8 @@ const cartDrawer = $("#cartDrawer");
 const drawerOverlay = $("#drawerOverlay");
 const modalBackdrop = $("#modalBackdrop");
 const cartBubble = $("#cartBubble");
+const sideDrawer = $("#sideDrawer");
+const sideOverlay = $("#sideOverlay");
 
 function money(value) {
   return new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(value);
@@ -235,6 +237,12 @@ function renderHeader() {
   $("#ordersButton").hidden = !currentUser;
 }
 
+function updateSideUser() {
+  $("#sideUserName").textContent = currentUser ? currentUser.name : "Invitado";
+  $("#sideUserEmail").textContent = currentUser ? currentUser.email : "Inicia sesión para comprar";
+  $("#sideAuthButton").textContent = currentUser ? "Salir" : "Ingresar";
+}
+
 function refreshIcons() {
   if (window.lucide) window.lucide.createIcons();
 }
@@ -264,6 +272,21 @@ function closeDrawer() {
   cartDrawer.classList.remove("open");
   cartDrawer.setAttribute("aria-hidden", "true");
   $("#cartButton").setAttribute("aria-expanded", "false");
+}
+
+function openSideDrawer() {
+  sideOverlay.classList.add("open");
+  sideDrawer.classList.add("open");
+  sideDrawer.setAttribute("aria-hidden", "false");
+  $("#hamburgerButton").setAttribute("aria-expanded", "true");
+  updateSideUser();
+}
+
+function closeSideDrawer() {
+  sideOverlay.classList.remove("open");
+  sideDrawer.classList.remove("open");
+  sideDrawer.setAttribute("aria-hidden", "true");
+  $("#hamburgerButton").setAttribute("aria-expanded", "false");
 }
 
 function openModal(modal) {
@@ -392,6 +415,7 @@ function handleAuth(event) {
   }
   renderHeader();
   renderCart();
+  updateSideUser();
   closeModal();
   showToast(authMode === "register" ? "Tu cuenta está lista. ¡Bienvenido!" : `¡Hola, ${user.name}! Sesión iniciada.`, "circle-check");
 }
@@ -619,6 +643,63 @@ document.querySelectorAll("[data-category-link]").forEach((link) => link.addEven
   renderProducts(true);
 }));
 $("#cartButton").addEventListener("click", openDrawer);
+$("#hamburgerButton").addEventListener("click", openSideDrawer);
+sideOverlay.addEventListener("click", closeSideDrawer);
+document.querySelectorAll("[data-close-side]").forEach((button) => button.addEventListener("click", closeSideDrawer));
+$("#sideAuthButton").addEventListener("click", () => {
+  closeSideDrawer();
+  if (currentUser) {
+    currentUser = null;
+    writeStorage(STORAGE_KEYS.session, null);
+    cart = readStorage(cartKey(), {});
+    renderHeader();
+    renderCart();
+    updateSideUser();
+    showToast("Has cerrado sesión.", "log-out");
+  } else {
+    setAuthMode("login");
+    openModal($("#authModal"));
+  }
+});
+document.querySelectorAll("[data-open-orders]").forEach((button) => button.addEventListener("click", () => {
+  closeSideDrawer();
+  showOrders();
+}));
+
+// Configuración: tema, tamaño de letra, idioma
+const themeToggle = $("#themeToggle");
+const fontSizeSelect = $("#fontSizeSelect");
+const languageSelect = $("#languageSelect");
+
+function applyTheme(dark) {
+  document.body.classList.toggle("dark", dark);
+  if (themeToggle) themeToggle.checked = dark;
+  try { localStorage.setItem("nordico_theme", dark ? "dark" : "light"); } catch (e) {}
+}
+
+function applyFontSize(size) {
+  document.body.classList.remove("font-large", "font-xlarge");
+  if (size === "large") document.body.classList.add("font-large");
+  if (size === "xlarge") document.body.classList.add("font-xlarge");
+  if (fontSizeSelect) fontSizeSelect.value = size;
+  try { localStorage.setItem("nordico_fontsize", size); } catch (e) {}
+}
+
+try {
+  applyTheme(localStorage.getItem("nordico_theme") === "dark");
+  applyFontSize(localStorage.getItem("nordico_fontsize") || "normal");
+} catch (e) {
+  applyTheme(false);
+  applyFontSize("normal");
+}
+
+themeToggle?.addEventListener("change", () => applyTheme(themeToggle.checked));
+fontSizeSelect?.addEventListener("change", () => applyFontSize(fontSizeSelect.value));
+languageSelect?.addEventListener("change", () => {
+  const lang = languageSelect.value;
+  try { localStorage.setItem("nordico_lang", lang); } catch (e) {}
+  showToast(lang === "es" ? "Idioma: Español" : "Language: English", "globe");
+});
 drawerOverlay.addEventListener("click", closeDrawer);
 document.querySelectorAll("[data-close-drawer]").forEach((button) => button.addEventListener("click", closeDrawer));
 $("#cartItems").addEventListener("click", (event) => {
@@ -727,9 +808,17 @@ modalBackdrop.addEventListener("click", (event) => { if (event.target === modalB
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeDrawer();
+    closeSideDrawer();
     closeModal();
   }
 });
+const backToTop = $("#backToTop");
+window.addEventListener("scroll", () => {
+  if (window.scrollY > 400) backToTop?.classList.add("visible");
+  else backToTop?.classList.remove("visible");
+});
+backToTop?.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
 $("#newsletterForm").addEventListener("submit", (event) => {
   event.preventDefault();
   event.currentTarget.reset();
