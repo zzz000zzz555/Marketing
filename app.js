@@ -377,6 +377,7 @@ function renderProducts(resetPage = false) {
       </article>`;
     }).join("");
   }
+  window.Motion?.observeCards?.(productGrid);
   renderPagination(totalPages, visibleProducts.length);
   refreshIcons();
 }

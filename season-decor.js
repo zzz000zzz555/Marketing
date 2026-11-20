@@ -225,6 +225,17 @@
   let windTime = 0;
   let lastFrame = 0;
   let activeParticleConfig = null;
+  let baseParticleCount = 0;
+  let quality = 1;
+  let frameSamples = 0;
+  let frameTimeSum = 0;
+  let targetPointerX = 0;
+  let targetPointerY = 0;
+  let pointerX = 0;
+  let pointerY = 0;
+  let scrollPos = 0;
+  let renderToken = 0;
+  let previousSeason = null;
 
   function isReduced() {
     return (
@@ -301,13 +312,54 @@
     c.fill();
   }
 
+  const PARALLAX = {
+    header: { pointer: 7, scroll: 0 },
+    hero: { pointer: 16, scroll: -0.025 },
+    divider: { pointer: 24, scroll: -0.05 },
+    footer: { pointer: 11, scroll: -0.015 },
+  };
+
+  function applyParallax(dt) {
+    const ease = Math.min(1, 0.075 * dt);
+    pointerX += (targetPointerX - pointerX) * ease;
+    pointerY += (targetPointerY - pointerY) * ease;
+    Object.keys(slots).forEach((key) => {
+      const el = slots[key];
+      if (!el) return;
+      const preset = PARALLAX[key];
+      el.style.setProperty("--px", `${(pointerX * preset.pointer).toFixed(2)}px`);
+      el.style.setProperty("--py", `${(pointerY * preset.pointer * 0.55).toFixed(2)}px`);
+      el.style.setProperty("--scroll-shift", `${(scrollPos * preset.scroll).toFixed(2)}px`);
+    });
+  }
+
   function tick(now) {
     if (!ctx || !canvas) return;
     const width = window.innerWidth;
     const height = window.innerHeight;
-    const dt = Math.min(32, now - (lastFrame || now)) / 16.67;
+    const rawDelta = Math.min(50, now - (lastFrame || now));
+    const dt = rawDelta / 16.67;
     lastFrame = now;
     const config = activeParticleConfig || {};
+
+    // Calidad adaptativa: si el dispositivo baja de 50 FPS, se reduce la carga.
+    frameSamples += 1;
+    frameTimeSum += rawDelta;
+    if (frameSamples >= 90) {
+      const avgFrame = frameTimeSum / frameSamples;
+      if (avgFrame > 20 && quality > 0) {
+        quality = quality === 1 ? 0.7 : quality === 0.7 ? 0.45 : 0;
+        if (quality === 0) {
+          stopParticles();
+          return;
+        }
+        particles.length = Math.max(12, Math.floor(baseParticleCount * quality));
+      }
+      frameSamples = 0;
+      frameTimeSum = 0;
+    }
+
+    applyParallax(dt);
     const elapsed = now - startedAt;
 
     ctx.clearRect(0, 0, width, height);
@@ -381,7 +433,11 @@
     resizeCanvas();
     startedAt = performance.now();
     lastFrame = startedAt;
-    particles = Array.from({ length: Math.min(config.count, 120) }, () => makeParticle(config, window.innerWidth, window.innerHeight));
+    quality = 1;
+    frameSamples = 0;
+    frameTimeSum = 0;
+    baseParticleCount = Math.min(config.count, 120);
+    particles = Array.from({ length: baseParticleCount }, () => makeParticle(config, window.innerWidth, window.innerHeight));
     rafId = requestAnimationFrame(tick);
   }
 
@@ -400,24 +456,63 @@
     } catch (e) { /* configuración inválida: se conservan los atributos actuales */ }
   }
 
-  function render() {
-    currentSeason = root.dataset.season || "default";
-    const visible =
-      root.dataset.decor !== "off" &&
-      currentSeason !== "default" &&
-      !!ART[currentSeason] &&
-      !isReduced() &&
-      !isPerformanceBlocked() &&
-      !isUiBlocked();
-
+  function swapArtwork(visible) {
     Object.keys(slots).forEach((key) => {
       const el = slots[key];
       if (!el) return;
       el.innerHTML = visible ? (ART[currentSeason][key] || "") : "";
     });
+
+    if (visible) {
+      Object.values(slots).forEach((slot) => {
+        if (!slot) return;
+        slot.querySelectorAll(".deco-twinkle, .deco-sway, .deco-float, .deco-pulse, .deco-wave").forEach((node, index) => {
+          node.style.setProperty("--delay", `${-((index % 7) * 0.34).toFixed(2)}s`);
+        });
+      });
+      if (currentSeason === "anio-nuevo" || currentSeason === "cyber") {
+        slots.hero?.insertAdjacentHTML("afterbegin", '<div class="deco-aurora" aria-hidden="true"></div>');
+      }
+    }
+
     setActive(visible);
     stopParticles();
     if (visible) startParticles(currentSeason);
+  }
+
+  function render(immediate = false) {
+    const token = ++renderToken;
+    const nextSeason = root.dataset.season || "default";
+    const visible =
+      root.dataset.decor !== "off" &&
+      nextSeason !== "default" &&
+      !!ART[nextSeason] &&
+      !isReduced() &&
+      !isPerformanceBlocked() &&
+      !isUiBlocked();
+    const changed = nextSeason !== currentSeason;
+    if (changed) previousSeason = currentSeason;
+    currentSeason = nextSeason;
+
+    Object.values(slots).forEach((el) => el && el.classList.remove("is-switching"));
+
+    if (!visible) {
+      swapArtwork(false);
+      return;
+    }
+
+    if (!immediate && changed && previousSeason && previousSeason !== "default") {
+      stopParticles();
+      Object.values(slots).forEach((el) => el && el.classList.add("is-switching"));
+      window.setTimeout(() => {
+        if (token !== renderToken) return;
+        swapArtwork(true);
+        Object.values(slots).forEach((el) => el && el.classList.remove("is-switching"));
+      }, 220);
+      return;
+    }
+
+    swapArtwork(true);
   }
 
   function refreshLifecycle() {
@@ -433,6 +528,13 @@
   window.addEventListener("resize", () => {
     if (rafId !== null) resizeCanvas();
   });
+  window.addEventListener("pointermove", (event) => {
+    if (isReduced() || isPerformanceBlocked() || root.dataset.decor === "off") return;
+    targetPointerX = (event.clientX / window.innerWidth) * 2 - 1;
+    targetPointerY = (event.clientY / window.innerHeight) * 2 - 1;
+  }, { passive: true });
+  window.addEventListener("scroll", () => { scrollPos = window.scrollY; }, { passive: true });
+  window.addEventListener("blur", () => { targetPointerX = 0; targetPointerY = 0; });
   window.addEventListener("nordico:seasonchange", () => {
     readCampaignFlags();
     render();
