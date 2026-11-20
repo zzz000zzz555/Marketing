@@ -48,18 +48,20 @@ const baseProducts = [
   { id: 30, name: "Altavoz inteligente", price: 259, category: "Tecnología", stock: 8, description: "Tu hogar, al comando de voz.", image: "https://images.unsplash.com/photo-1543512214-318c7553f230?auto=format&fit=crop&w=800&q=80", badge: "" }
 ];
 
-let products = baseProducts.slice();
+let products = baseProducts.map(enrichProduct);
 async function loadProductsFromSupabase() {
   if (!window.supabase || !supabaseClient) return;
   try {
     const { data, error } = await supabaseClient.from('products').select('*').order('id');
     if (error) { console.error('Supabase products error', error); return; }
     if (data && data.length) {
-      products = data;
+      products = data.map(enrichProduct);
       // sync stock map
       const stockMap = readStorage(STORAGE_KEYS.stock, {});
       products.forEach((p) => { if (!Number.isInteger(stockMap[p.id])) stockMap[p.id] = p.stock; });
       writeStorage(STORAGE_KEYS.stock, stockMap);
+    } else {
+      products = baseProducts.map(enrichProduct);
     }
   } catch (e) {
     console.error('Supabase load failed', e);
@@ -106,6 +108,72 @@ let currentPage = 1;
 const favoritesKey = () => `nordico_favorites_${currentUser ? currentUser.email : "guest"}`;
 let favorites = readStorage(favoritesKey(), []);
 let lastOrders = [];
+
+// ---------- Enriquecimiento de productos (Paso 1) ----------
+const CATEGORY_SPECS = {
+  "Tecnología": { material: "ABS + Aluminio", dimensions: "Variable según modelo", weight: "0.2 - 0.8 kg", color: "Negro / Plata", origin: "China", warranty: "12 meses", care: "Limpiar con paño seco", packageContents: ["Producto", "Cable USB", "Manual de usuario"] },
+  "Hogar": { material: "Cerámica / Madera", dimensions: "Variable", weight: "0.3 - 1.5 kg", color: "Blanco / Natural", origin: "Perú", warranty: "6 meses", care: "Lavar a mano", packageContents: ["Producto", "Manual"] },
+  "Moda": { material: "Algodón / Cuero", dimensions: "Talla única / Ajustable", weight: "0.1 - 0.4 kg", color: "Varios", origin: "Perú", warranty: "30 días", care: "Lavar a máquina ciclo suave", packageContents: ["Producto", "Etiqueta de cuidado"] },
+  "Deportes": { material: "Poliéster / Goma EVA", dimensions: "Estándar", weight: "0.2 - 1.0 kg", color: "Negro / Gris", origin: "China", warranty: "6 meses", care: "Limpiar con paño húmedo", packageContents: ["Producto", "Manual"] },
+  "Belleza": { material: "Vidrio / Plástico reciclable", dimensions: "50 - 200 ml", weight: "0.1 - 0.3 kg", color: "Transparente", origin: "Perú", warranty: "30 días", care: "Mantener en lugar fresco", packageContents: ["Producto", "Caja", "Folleto"] },
+  "Accesorios": { material: "Cuero / Acero", dimensions: "Ajustable", weight: "0.05 - 0.3 kg", color: "Negro / Marrón", origin: "Perú", warranty: "6 meses", care: "Limpiar con paño seco", packageContents: ["Producto", "Bolsa de protección"] }
+};
+
+function enrichProduct(product) {
+  const spec = CATEGORY_SPECS[product.category] || CATEGORY_SPECS["Accesorios"];
+  const rating = +(4.2 + Math.random() * 0.7).toFixed(1);
+  const reviewCount = Math.floor(12 + Math.random() * 80);
+  return {
+    ...product,
+    sku: `ND-${String(product.id).padStart(4, "0")}`,
+    shortDescription: product.description + " Diseñado para tu día a día.",
+    benefits: [
+      "Materiales de alta calidad seleccionados con cuidado.",
+      "Diseño funcional que se adapta a tu rutina.",
+      "Durabilidad comprobada en uso diario.",
+      "Envío rápido y seguro a todo el Perú."
+    ],
+    spec,
+    rating,
+    reviewCount,
+    deliveryEstimate: "Lima Metropolitana: 1-2 días · Provincias: 3-7 días",
+    guarantee: "Garantía de 12 meses · Cambios fáciles hasta 30 días"
+  };
+}
+
+// ---------- Combos / Packs (Paso 1) ----------
+const bundles = [
+  {
+    id: 1, name: "Pack Trabajo en Casa", slug: "pack-trabajo-en-casa",
+    subtitle: "Todo lo que necesitas para tu home office.",
+    description: "Combina teclado, lámpara y taza para una jornada cómoda y productiva.",
+    image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=80",
+    items: [{ productId: 10, quantity: 1 }, { productId: 2, quantity: 1 }, { productId: 7, quantity: 1 }],
+    price: 399, originalPrice: 497, isActive: true
+  },
+  {
+    id: 2, name: "Pack Bienestar Diario", slug: "pack-bienestar-diario",
+    subtitle: "Cuida tu cuerpo y tu espacio.",
+    description: "Botella térmica, cojín de lino y taza de cerámica para rituales diarios.",
+    image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=800&q=80",
+    items: [{ productId: 4, quantity: 1 }, { productId: 11, quantity: 1 }, { productId: 7, quantity: 1 }],
+    price: 189, originalPrice: 217, isActive: true
+  },
+  {
+    id: 3, name: "Pack Tech Essentials", slug: "pack-tech-essentials",
+    subtitle: "Tecnología para tu día a día.",
+    description: "Auriculares, parlante y teclado inalámbrico para máxima productividad.",
+    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80",
+    items: [{ productId: 1, quantity: 1 }, { productId: 8, quantity: 1 }, { productId: 10, quantity: 1 }],
+    price: 479, originalPrice: 527, isActive: true
+  }
+];
+
+// ---------- Preferencia de rendimiento ----------
+let performanceMode = (function () {
+  try { return localStorage.getItem("nordico_performance") === "1"; }
+  catch (e) { return false; }
+})();
 const THEME_PRESETS = {
   default: { primary: "#0a0a0a", accent: "#0a0a0a", bg: "#ffffff", heroBg: "#f5f5f5", announcement: "ENVÍO GRATIS EN PEDIDOS MAYORES A S/ 250" },
   navidad: { primary: "#165b33", accent: "#c41e3a", bg: "#fef9f0", heroBg: "#f0e6d2", announcement: "🎄 ¡FELIZ NAVIDAD! Hasta 40% OFF en combos de regalo" },
