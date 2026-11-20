@@ -173,11 +173,29 @@ h1, h2, p { margin-top: 0; }
 .checkout-summary strong { color: var(--ink); font-size: 18px; font-weight: 800; }
 .orders-modal { width: min(520px,100%); }
 .orders-list { display: grid; gap: 12px; margin-top: 22px; }
-.order-card { padding: 16px; border: 1px solid var(--line); }
-.order-head { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; text-transform: uppercase; letter-spacing: .08em; }
-.order-head strong { font-weight: 700; }
-.order-card p { margin: 10px 0 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
-.orders-empty { padding: 32px 10px; color: var(--muted); text-align: center; font-size: 16px; }
+.order-card { padding: 20px; border: 1px solid var(--line); background: var(--soft); }
+.order-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.order-card-head > div { display: flex; flex-direction: column; gap: 4px; }
+.order-status { display: inline-block; padding: 3px 8px; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; background: var(--ink); color: var(--white); margin-bottom: 6px; width: fit-content; }
+.order-card-head strong { font-size: 14px; font-weight: 800; letter-spacing: -.02em; }
+.order-card-head small { font-size: 10px; color: var(--muted); }
+.order-total { font-size: 16px; font-weight: 800; }
+.order-items { list-style: none; margin: 0 0 12px; padding: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.order-items li { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; font-size: 12px; border-bottom: 1px solid var(--line); }
+.order-items li:last-child { border-bottom: 0; }
+.order-items li span { font-weight: 700; color: var(--muted); }
+.order-items li em { font-style: normal; font-weight: 600; color: var(--ink); }
+.order-meta { display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+.order-meta span { display: flex; align-items: center; gap: 6px; }
+.order-meta svg { width: 13px; height: 13px; }
+.order-totals { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; }
+.order-totals strong { color: var(--ink); font-size: 13px; }
+.order-actions { display: flex; justify-content: flex-end; }
+.order-actions .button { min-height: 36px; font-size: 10px; }
+.orders-empty { padding: 40px 10px; color: var(--muted); text-align: center; font-size: 12px; display: grid; justify-items: center; gap: 8px; }
+.orders-empty svg { width: 32px; height: 32px; color: var(--ink); }
+.orders-empty h3 { margin: 0; font-size: 16px; font-weight: 700; text-transform: uppercase; color: var(--ink); }
+.orders-modal { width: min(620px, 100%); }
 .toast-region { position: fixed; z-index: 50; right: 22px; bottom: 22px; display: grid; gap: 10px; }
 .toast { display: flex; align-items: center; gap: 10px; min-width: 260px; max-width: min(380px,calc(100vw - 32px)); padding: 14px 18px; background: var(--ink); color: var(--white); font-size: 15px; text-transform: uppercase; letter-spacing: .08em; border: 1px solid var(--ink); animation: toast-in .25s ease both; }
 .toast svg { width: 16px; height: 16px; color: var(--white); }

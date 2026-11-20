@@ -522,12 +522,32 @@ function showOrders() {
   const orders = readStorage(STORAGE_KEYS.orders, {})[currentUser.email] || [];
   $("#ordersList").innerHTML = orders.length ? [...orders].reverse().map((order) => `
     <article class="order-card">
-      <div class="order-head"><strong>Pedido ${escapeHtml(order.id)}</strong><span>${new Date(order.date).toLocaleDateString("es-PE")}</span></div>
-      <p>${order.items.map((item) => `${item.quantity} × ${escapeHtml(item.name)}`).join("<br>")}<br>Envío: ${escapeHtml(order.address)}<br>Pago: ${escapeHtml(order.payment)}</p>
-      <div class="order-head"><span>Subtotal ${money(order.subtotal)} · Impuestos ${money(order.tax)}</span><strong>${money(order.total)}</strong></div>
-      <button class="text-button" data-receipt-id="${escapeHtml(order.id)}" type="button">Ver boleta</button>
+      <div class="order-card-head">
+        <div>
+          <span class="order-status">Completado</span>
+          <strong>Pedido ${escapeHtml(order.id)}</strong>
+          <small>${new Date(order.date).toLocaleString("es-PE")}</small>
+        </div>
+        <strong class="order-total">${money(order.total)}</strong>
+      </div>
+      <ul class="order-items">
+        ${order.items.map((item) => `<li><span>${item.quantity}×</span> ${escapeHtml(item.name)} <em>${money(item.price * item.quantity)}</em></li>`).join("")}
+      </ul>
+      <div class="order-meta">
+        <span><i data-lucide="map-pin"></i> ${escapeHtml(order.address)}</span>
+        <span><i data-lucide="credit-card"></i> ${escapeHtml(order.payment)}</span>
+      </div>
+      <div class="order-totals">
+        <span>Subtotal ${money(order.subtotal)}</span>
+        <span>IGV ${money(order.tax)}</span>
+        <strong>Total ${money(order.total)}</strong>
+      </div>
+      <div class="order-actions">
+        <button class="button" data-receipt-id="${escapeHtml(order.id)}" type="button"><i data-lucide="receipt"></i> Ver boleta</button>
+      </div>
     </article>
-  `).join("") : `<div class="orders-empty">Todavía no tienes pedidos. Tus próximas compras aparecerán aquí.</div>`;
+  `).join("") : `<div class="orders-empty"><i data-lucide="shopping-bag"></i><h3>Sin pedidos todavía</h3><p>Tus próximas compras aparecerán aquí.</p></div>`;
+  refreshIcons();
   openModal($("#ordersModal"));
 }
 
