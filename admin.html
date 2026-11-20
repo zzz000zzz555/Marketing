@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a0a0a">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://unpkg.com; connect-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co;">
   <meta name="description" content="Panel de administración NÓRDICO.">
   <title>NÓRDICO — Panel de administración</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -178,6 +178,8 @@
 
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://unpkg.com/chart.js@4/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js" defer></script>
   <script src="admin.js" defer></script>
 </body>
 </html>

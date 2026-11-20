@@ -48,8 +48,23 @@ const baseProducts = [
   { id: 30, name: "Altavoz inteligente", price: 259, category: "Tecnología", stock: 8, description: "Tu hogar, al comando de voz.", image: "https://images.unsplash.com/photo-1543512214-318c7553f230?auto=format&fit=crop&w=800&q=80", badge: "" }
 ];
 
-let products = readStorage(STORAGE_KEYS.products, baseProducts);
-if (!readStorage(STORAGE_KEYS.products, null)) writeStorage(STORAGE_KEYS.products, baseProducts);
+let products = baseProducts.slice();
+async function loadProductsFromSupabase() {
+  if (!window.supabase || !supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient.from('products').select('*').order('id');
+    if (error) { console.error('Supabase products error', error); return; }
+    if (data && data.length) {
+      products = data;
+      // sync stock map
+      const stockMap = readStorage(STORAGE_KEYS.stock, {});
+      products.forEach((p) => { if (!Number.isInteger(stockMap[p.id])) stockMap[p.id] = p.stock; });
+      writeStorage(STORAGE_KEYS.stock, stockMap);
+    }
+  } catch (e) {
+    console.error('Supabase load failed', e);
+  }
+}
 
 function readStorage(key, fallback) {
   try {
@@ -90,6 +105,7 @@ let activeCategory = "Todos";
 let currentPage = 1;
 const favoritesKey = () => `nordico_favorites_${currentUser ? currentUser.email : "guest"}`;
 let favorites = readStorage(favoritesKey(), []);
+let lastOrders = [];
 
 function isFavorite(productId) {
   return favorites.includes(productId);
@@ -101,6 +117,17 @@ function toggleFavorite(productId) {
   writeStorage(favoritesKey(), favorites);
   renderProducts();
   renderFavoritesCount();
+  if (supabaseClient && currentUser) {
+    (async () => {
+      try {
+        if (favorites.includes(productId)) {
+          await supabaseClient.from('favorites').upsert({ user_email: currentUser.email, product_id: productId });
+        } else {
+          await supabaseClient.from('favorites').delete().eq('user_email', currentUser.email).eq('product_id', productId);
+        }
+      } catch (e) { console.error('Supabase favorites sync failed', e); }
+    })();
+  }
 }
 
 function renderFavoritesCount() {
@@ -532,7 +559,7 @@ function showAuthError(message) {
   $("#authError").textContent = message;
 }
 
-function submitOrder(event) {
+async function submitOrder(event) {
   event.preventDefault();
   if (!currentUser || !cartQuantity()) return;
   const formData = new FormData(event.currentTarget);
@@ -553,6 +580,29 @@ function submitOrder(event) {
   const orders = readStorage(STORAGE_KEYS.orders, {});
   orders[currentUser.email] = [...(orders[currentUser.email] || []), order];
   writeStorage(STORAGE_KEYS.orders, orders);
+  // Sync to Supabase
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('orders').insert({
+        id: order.id,
+        customer_email: currentUser.email,
+        customer_name: currentUser.name,
+        date: order.date,
+        subtotal: order.subtotal,
+        tax: order.tax,
+        total: order.total,
+        address: order.address,
+        payment: order.payment
+      });
+      await supabaseClient.from('order_items').insert(order.items.map((it) => ({
+        order_id: order.id,
+        product_id: it.id,
+        name: it.name,
+        price: it.price,
+        quantity: it.quantity
+      })));
+    } catch (e) { console.error('Supabase order sync failed', e); }
+  }
   cart = {};
   persistCart();
   renderProducts();
@@ -563,9 +613,27 @@ function submitOrder(event) {
   showReceipt(order);
 }
 
-function showOrders() {
+async function showOrders() {
   if (!currentUser) return;
-  const orders = readStorage(STORAGE_KEYS.orders, {})[currentUser.email] || [];
+  let orders = readStorage(STORAGE_KEYS.orders, {})[currentUser.email] || [];
+  if (supabaseClient) {
+    try {
+      const { data } = await supabaseClient.from('orders').select('*, order_items(*)').eq('customer_email', currentUser.email).order('date', { ascending: false });
+      if (data && data.length) {
+        orders = data.map((o) => ({
+          id: o.id,
+          date: o.date,
+          items: (o.order_items || []).map((i) => ({ id: i.product_id, name: i.name, price: Number(i.price), quantity: i.quantity })),
+          subtotal: Number(o.subtotal),
+          tax: Number(o.tax),
+          total: Number(o.total),
+          address: o.address,
+          payment: o.payment
+        }));
+      }
+    } catch (e) { console.error('Supabase orders fetch failed', e); }
+  }
+  lastOrders = orders;
   $("#ordersList").innerHTML = orders.length ? [...orders].reverse().map((order) => `
     <article class="order-card">
       <div class="order-card-head">
@@ -944,9 +1012,10 @@ try {
 themeToggle?.addEventListener("change", () => applyTheme(themeToggle.checked));
 const headerThemeBtn = $("#themeToggleButton");
 function syncHeaderThemeButton() {
-  if (!headerThemeBtn) return;
+  const btn = $("#themeToggleButton");
+  if (!btn) return;
   const dark = document.body.classList.contains("dark");
-  headerThemeBtn.innerHTML = dark ? '<i data-lucide="sun"></i>' : '<i data-lucide="moon"></i>';
+  btn.innerHTML = dark ? '<i data-lucide="sun"></i>' : '<i data-lucide="moon"></i>';
   refreshIcons();
 }
 headerThemeBtn?.addEventListener("click", () => {
@@ -1090,7 +1159,7 @@ $("#closeReceiptButton").addEventListener("click", closeModal);
 $("#ordersList").addEventListener("click", (event) => {
   const button = event.target.closest("[data-receipt-id]");
   if (!button) return;
-  const orders = readStorage(STORAGE_KEYS.orders, {})[currentUser?.email] || [];
+  const orders = lastOrders.length ? lastOrders : (readStorage(STORAGE_KEYS.orders, {})[currentUser?.email] || []);
   const order = orders.find((item) => item.id === button.dataset.receiptId);
   if (order) showReceipt(order);
 });
@@ -1119,8 +1188,12 @@ $("#newsletterForm").addEventListener("submit", (event) => {
   showToast("¡Gracias por sumarte a la comunidad!", "mail-check");
 });
 
-renderCategories();
-renderProducts();
-renderHeader();
-renderCart();
-refreshIcons();
+async function initApp() {
+  await loadProductsFromSupabase();
+  renderCategories();
+  renderProducts();
+  renderHeader();
+  renderCart();
+  refreshIcons();
+}
+initApp();

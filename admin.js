@@ -209,7 +209,7 @@ function showLogin() {
 }
 
 // ---------- Navigation ----------
-function renderView(view) {
+async function renderView(view) {
   $$(".view").forEach((v) => { v.hidden = v.id !== `view-${view}`; });
   $$(".sidebar-nav button").forEach((b) => b.classList.toggle("active", b.dataset.view === view));
   const titles = {
@@ -222,9 +222,9 @@ function renderView(view) {
     settings: "Configuración"
   };
   $("#viewTitle").textContent = titles[view] || view;
-  if (view === "dashboard") renderDashboard();
-  if (view === "products") renderProducts();
-  if (view === "orders") renderOrders();
+  if (view === "dashboard") await renderDashboard();
+  if (view === "products") await renderProducts();
+  if (view === "orders") await renderOrders();
   if (view === "users") renderUsers();
   if (view === "content") loadPolicyEditor();
   if (view === "audit") renderAudit();
@@ -233,10 +233,27 @@ function renderView(view) {
 }
 
 // ---------- Dashboard ----------
-function renderDashboard() {
-  if (!getAllOrders().length) seedDemoData();
-  const products = readStorage(STORAGE_KEYS.products, []);
-  const orders = getAllOrders();
+async function renderDashboard() {
+  let products = readStorage(STORAGE_KEYS.products, []);
+  let orders = getAllOrders();
+  if (window.supabase && supabaseClient) {
+    try {
+      const { data: pData } = await supabaseClient.from('products').select('*').order('id');
+      if (pData && pData.length) products = pData;
+      const { data: oData } = await supabaseClient.from('orders').select('*, order_items(*)').order('date', { ascending: false });
+      if (oData && oData.length) {
+        orders = oData.map((o) => ({
+          id: o.id, customerEmail: o.customer_email, customerName: o.customer_name, date: o.date,
+          items: (o.order_items || []).map((i) => ({ id: i.product_id, name: i.name, price: Number(i.price), quantity: i.quantity })),
+          subtotal: Number(o.subtotal), tax: Number(o.tax), total: Number(o.total), address: o.address, payment: o.payment
+        }));
+      } else if (!orders.length) {
+        await seedDemoData(); orders = getAllOrders();
+      }
+    } catch (e) { console.error(e); if (!orders.length) { await seedDemoData(); orders = getAllOrders(); } }
+  } else {
+    if (!orders.length) { await seedDemoData(); orders = getAllOrders(); }
+  }
   const users = readStorage(STORAGE_KEYS.users, []);
   const revenue = orders.reduce((s, o) => s + (o.total || 0), 0);
   const lowStock = products.filter((p) => (readStorage(STORAGE_KEYS.stock, {})[p.id] ?? p.stock) <= 5).length;
@@ -344,8 +361,14 @@ function maskEmail(email) {
 }
 
 // ---------- Products ----------
-function renderProducts() {
-  const products = readStorage(STORAGE_KEYS.products, []);
+async function renderProducts() {
+  let products = readStorage(STORAGE_KEYS.products, []);
+  if (window.supabase && supabaseClient) {
+    try {
+      const { data } = await supabaseClient.from('products').select('*').order('id');
+      if (data && data.length) products = data;
+    } catch (e) { console.error(e); }
+  }
   const stock = readStorage(STORAGE_KEYS.stock, {});
   const rows = products.map((p) => `
     <tr>
@@ -429,8 +452,27 @@ function deleteProduct(id) {
 }
 
 // ---------- Orders ----------
-function renderOrders() {
-  const orders = getAllOrders();
+async function renderOrders() {
+  let orders = getAllOrders();
+  if (window.supabase && supabaseClient) {
+    try {
+      const { data } = await supabaseClient.from('orders').select('*, order_items(*)').order('date', { ascending: false });
+      if (data && data.length) {
+        orders = data.map((o) => ({
+          id: o.id,
+          customerEmail: o.customer_email,
+          customerName: o.customer_name,
+          date: o.date,
+          items: (o.order_items || []).map((i) => ({ id: i.product_id, name: i.name, price: Number(i.price), quantity: i.quantity })),
+          subtotal: Number(o.subtotal),
+          tax: Number(o.tax),
+          total: Number(o.total),
+          address: o.address,
+          payment: o.payment
+        }));
+      }
+    } catch (e) { console.error(e); }
+  }
   if (!orders.length) {
     $("#ordersTable").innerHTML = `<tbody><tr><td>Sin pedidos</td></tr></tbody>`;
     return;
@@ -585,7 +627,7 @@ function restoreBackup(file) {
 }
 
 // ---------- Seed demo data ----------
-function seedDemoData() {
+async function seedDemoData() {
   const products = readStorage(STORAGE_KEYS.products, []);
   if (!products.length) return;
   // Users
@@ -634,6 +676,22 @@ function seedDemoData() {
     writeStorage(`nordico_favorites_${email}`, favs);
   });
   writeStorage(STORAGE_KEYS.orders, ordersMap);
+  // Sync to Supabase
+  if (window.supabase && supabaseClient) {
+    try {
+      const allOrders = Object.values(ordersMap).flat();
+      for (const o of allOrders) {
+        await supabaseClient.from('orders').upsert({
+          id: o.id, customer_email: o.customerEmail || 'demo@tienda.com', customer_name: o.customerName || 'Cliente demo',
+          date: o.date, subtotal: o.subtotal, tax: o.tax, total: o.total, address: o.address, payment: o.payment
+        });
+        await supabaseClient.from('order_items').delete().eq('order_id', o.id);
+        await supabaseClient.from('order_items').insert(o.items.map((it) => ({
+          order_id: o.id, product_id: it.id, name: it.name, price: it.price, quantity: it.quantity
+        })));
+      }
+    } catch (e) { console.error('Supabase seed failed', e); }
+  }
   // Stock adjust
   const stock = readStorage(STORAGE_KEYS.stock, {});
   products.forEach((p) => { if (!Number.isInteger(stock[p.id])) stock[p.id] = p.stock; });
@@ -697,9 +755,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     showLogin();
   });
   // Refresh
-  $("#seedDemoButton")?.addEventListener("click", () => {
-    seedDemoData();
-    renderView("dashboard");
+  $("#seedDemoButton")?.addEventListener("click", async () => {
+    await seedDemoData();
+    await renderView("dashboard");
     showToast("Datos de prueba insertados");
   });
   $("#refreshButton").addEventListener("click", () => {
