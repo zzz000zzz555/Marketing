@@ -1286,15 +1286,20 @@ function initCampaignCanvas() {
 
 async function initApp() {
   window.__initAppRan = true;
-  await loadProductsFromSupabase();
-  renderCategories();
-  renderProducts();
-  renderHeader();
-  renderCart();
-  refreshIcons();
-  window.__beforeBubble = true;
-  initCampaignBubble();
-  window.__afterBubble = true;
-  initCampaignCanvas();
+  try {
+    await loadProductsFromSupabase();
+    renderCategories();
+    renderProducts();
+    renderHeader();
+    renderCart();
+    refreshIcons();
+    window.__beforeBubble = true;
+    initCampaignBubble();
+    window.__afterBubble = true;
+    initCampaignCanvas();
+  } catch (e) {
+    window.__initError = e.message;
+    console.error("initApp error:", e);
+  }
 }
 initApp();
