@@ -1,0 +1,7 @@
+.split-mask { display: inline-block; overflow: hidden; vertical-align: bottom; }
+.split-char, .split-word, .split-line { display: inline-block; will-change: transform, opacity; }
+.split-chars .char, .split-words .word, .split-lines .line { display: inline-block; opacity: 0; transform: translateY(100%); }
+.split-chars.in-view .char, .split-words.in-view .word, .split-lines.in-view .line { opacity: 1; transform: translateY(0); transition: opacity var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-out); }
+.split-words .word { transform: translateY(40px) scale(0.9); }
+.split-words.in-view .word { transform: translateY(0) scale(1); }
+.split-lines .line { transform: translateY(30px); }

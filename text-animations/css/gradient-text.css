@@ -1,0 +1,12 @@
+.gradient-text {
+  background: linear-gradient(90deg, #00e5ff, #34d399, #38bdf8, #00e5ff);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-shift 6s linear infinite;
+}
+@keyframes gradient-shift { to { background-position: 300% 0; } }
+.color-wipe { position: relative; display: inline-block; color: #52525b; }
+.color-wipe::after { content: attr(data-text); position: absolute; inset: 0; color: #00e5ff; clip-path: inset(0 100% 0 0); transition: clip-path 1.2s var(--ease-out); }
+.color-wipe.in-view::after { clip-path: inset(0 0 0 0); }

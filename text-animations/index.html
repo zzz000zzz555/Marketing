@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="es" data-mode="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Colección de animaciones de tipografía para web.">
+  <title>Animated Typography — Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/typewriter.css">
+  <link rel="stylesheet" href="css/split-text.css">
+  <link rel="stylesheet" href="css/gradient-text.css">
+  <link rel="stylesheet" href="css/reveal.css">
+  <link rel="stylesheet" href="css/kinetic.css">
+  <link rel="stylesheet" href="css/reduced-motion.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido principal</a>
+
+  <aside class="sidebar" aria-label="Navegación de efectos">
+    <div class="sidebar-brand">Animated<br>Typography</div>
+    <nav>
+      <a href="#typewriter-classic">Typewriter clásico</a>
+      <a href="#typewriter-terminal">Typewriter terminal</a>
+      <a href="#split-char">Split char reveal</a>
+      <a href="#split-word">Split word reveal</a>
+      <a href="#split-line">Split line reveal</a>
+      <a href="#gradient-text">Gradient text</a>
+      <a href="#color-wipe">Color wipe</a>
+      <a href="#clip-path">Clip-path reveal</a>
+      <a href="#blur-sharp">Blur to sharp</a>
+      <a href="#underline-draw">Underline draw</a>
+      <a href="#bouncing">Bouncing letters</a>
+      <a href="#scramble">Scramble decode</a>
+    </nav>
+    <div class="controls">
+      <label>Velocidad <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1"></label>
+      <label>Stagger <input type="range" id="staggerRange" min="0.01" max="0.15" step="0.01" value="0.04"></label>
+      <button id="replayBtn" type="button">Reproducir</button>
+    </div>
+  </aside>
+
+  <main id="main">
+    <header class="hero">
+      <h1 class="gradient-text" aria-label="Animated Typography Showcase">Animated Typography</h1>
+      <p>Una colección de efectos de texto animado para héroes, títulos y elementos decorativos.</p>
+    </header>
+
+    <section class="effect-section" id="typewriter-classic">
+      <div class="effect-info">
+        <h2>Typewriter clásico</h2>
+        <p>Caracteres aparecen uno a uno con cursor parpadeante. Cicla entre frases.</p>
+      </div>
+      <div class="effect-demo">
+        <span class="typewriter" id="tw-classic" data-phrases='["Diseño que se siente como en casa.","Menos, pero mucho mejor.","Objetos que hacen bien su trabajo."]' aria-label="Diseño que se siente como en casa."></span>
+      </div>
+    </section>
+
+    <section class="effect-section" id="typewriter-terminal">
+      <div class="effect-info">
+        <h2>Typewriter terminal</h2>
+        <p>Texto monoespaciado verde sobre negro con cursor de bloque y prefijo de comando.</p>
+      </div>
+      <div class="effect-demo terminal">
+        <span class="typewriter-terminal" id="tw-terminal" aria-label="npm run build"></span>
+      </div>
+    </section>
+
+    <section class="effect-section" id="split-char">
+      <div class="effect-info">
+        <h2>Character split reveal</h2>
+        <p>Cada carácter anima desde abajo con stagger, enmascarado por overflow hidden.</p>
+      </div>
+      <div class="effect-demo">
+        <h3 class="split-chars" aria-label="Menos pero mucho mejor">Menos pero mucho mejor</h3>
+      </div>
+    </section>
+
+    <section class="effect-section" id="split-word">
+      <div class="effect-info">
+        <h2>Word split reveal</h2>
+        <p>Palabras aparecen con fade y slide, ideales para héroes.</p>
+      </div>
+      <div class="effect-demo">
+        <h3 class="split-words" aria-label="Diseño que se siente como en casa">Diseño que se siente como en casa</h3>
+      </div>
+    </section>
+
+    <section class="effect-section" id="split-line">
+      <div class="effect-info">
+        <h2>Line split reveal</h2>
+        <p>Bloque multilínea donde cada línea entra secuencialmente.</p>
+      </div>
+      <div class="effect-demo">
+        <p class="split-lines" aria-label="Objetos que hacen bien su trabajo. Diseño que se siente como en casa. Calidad que se nota.">Objetos que hacen bien su trabajo.<br>Diseño que se siente como en casa.<br>Calidad que se nota.</p>
+      </div>
+    </section>
+
+    <section class="effect-section" id="gradient-text">
+      <div class="effect-info">
+        <h2>Animated gradient text</h2>
+        <p>Texto relleno con gradiente animado usando background-clip: text.</p>
+      </div>
+      <div class="effect-demo">
+        <h3 class="gradient-text" aria-label="NÓRDICO STUDIO">NÓRDICO STUDIO</h3>
+      </div>
+    </section>
+
+    <section class="effect-section" id="color-wipe">
+      <div class="effect-info">
+        <h2>Color wipe reveal</h2>
+        <p>Un barrido de color revela el texto de un color a otro.</p>
+      </div>
+      <div class="effect-demo">
+        <h3 class="color-wipe" aria-label="Calidad que se nota">Calidad que se nota</h3>
+      </div>
+    </section>
+
+    <section class="effect-section" id="clip-path">
+      <div class="effect-info">
+        <h2>Clip-path reveal</h2>
+        <p>Texto revelado por un clip-path que se expande.</p>
+      </div>
+      <div class="effect-demo">
+        <h3 class="clip-reveal" aria-label="Menos pero mucho mejor">Menos pero mucho mejor</h3>
+      </div>
+    </section>
+
+    <section class="effect-section" id="blur-sharp">
+      <div class="effect-info">
+        <h2>Blur to sharp</h2>
+        <p>Texto borroso que se enfoca al entrar en vista.</p>
+      </div>
+      <div class="effect-demo">
+        <h3 class="blur-sharp" aria-label="Objetos para vivir mejor">Objetos para vivir mejor</h3>
+      </div>
+    </section>
+
+    <section class="effect-section" id="underline-draw">
+      <div class="effect-info">
+        <h2>Underline draw</h2>
+        <p>Subrayado animado que se dibuja al entrar en vista.</p>
+      </div>
+      <div class="effect-demo">
+        <h3 class="underline-draw" aria-label="Diseño que se siente como en casa">Diseño que se siente como en casa</h3>
+      </div>
+    </section>
+
+    <section class="effect-section" id="bouncing">
+      <div class="effect-info">
+        <h2>Bouncing letters</h2>
+        <p>Letras con rebote en cascada al entrar en vista o al pasar el cursor.</p>
+      </div>
+      <div class="effect-demo">
+        <h3 class="bouncing-text" aria-label="NÓRDICO">NÓRDICO</h3>
+      </div>
+    </section>
+
+    <section class="effect-section" id="scramble">
+      <div class="effect-info">
+        <h2>Scramble decode</h2>
+        <p>Texto que se decodifica desde caracteres aleatorios.</p>
+      </div>
+      <div class="effect-demo">
+        <h3 class="scramble-text" data-text="NÓRDICO STUDIO" aria-label="NÓRDICO STUDIO">NÓRDICO STUDIO</h3>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

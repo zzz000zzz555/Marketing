@@ -1,0 +1,7 @@
+.typewriter { font-family: var(--font-mono); font-size: 24px; }
+.typewriter .cursor { display: inline-block; width: 2px; height: 1.1em; background: var(--color-accent); margin-left: 2px; vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.terminal { background: #000; padding: 24px; border-radius: 8px; border: 1px solid #1a3a1a; }
+.typewriter-terminal { font-family: var(--font-mono); font-size: 16px; color: #4ade80; }
+.typewriter-terminal .prompt { color: #facc15; }
+.typewriter-terminal .block-cursor { display: inline-block; width: 10px; height: 1.1em; background: #4ade80; vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }

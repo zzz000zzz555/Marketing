@@ -1,0 +1,6 @@
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  .split-chars .char, .split-words .word, .split-lines .line, .blur-sharp { opacity: 1 !important; transform: none !important; filter: none !important; }
+  .gradient-text { animation: none !important; }
+  .scramble-text { /* text shown immediately by JS */ }
+}
