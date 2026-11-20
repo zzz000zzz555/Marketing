@@ -78,9 +78,27 @@ const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 30000;
 let loginAttempts = 0;
 let lockoutUntil = 0;
+let lockoutInterval = null;
 
 function isLockedOut() {
   return Date.now() < lockoutUntil;
+}
+
+function startLockoutCountdown() {
+  if (lockoutInterval) clearInterval(lockoutInterval);
+  const errorEl = $("#loginError");
+  const tick = () => {
+    if (!isLockedOut()) {
+      errorEl.textContent = "";
+      if (lockoutInterval) clearInterval(lockoutInterval);
+      lockoutInterval = null;
+      return;
+    }
+    const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
+    errorEl.textContent = `Demasiados intentos. Espera ${remaining}s.`;
+  };
+  tick();
+  lockoutInterval = setInterval(tick, 1000);
 }
 
 // ---------- Session management ----------
@@ -137,8 +155,7 @@ async function handleLogin(event) {
   const errorEl = $("#loginError");
   errorEl.textContent = "";
   if (isLockedOut()) {
-    const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
-    errorEl.textContent = `Demasiados intentos. Espera ${remaining}s.`;
+    startLockoutCountdown();
     return;
   }
   const username = $("#loginUser").value.trim();
@@ -157,6 +174,7 @@ async function handleLogin(event) {
     return;
   }
   loginAttempts = 0;
+  if (lockoutInterval) { clearInterval(lockoutInterval); lockoutInterval = null; }
   createSession(username);
   logAction(username, "Inicio de sesión exitoso");
   showApp();
@@ -168,7 +186,7 @@ function recordFailedAttempt(errorEl) {
   if (loginAttempts >= LOGIN_MAX_ATTEMPTS) {
     lockoutUntil = Date.now() + LOGIN_LOCKOUT_MS;
     loginAttempts = 0;
-    errorEl.textContent = "Cuenta bloqueada temporalmente por seguridad.";
+    startLockoutCountdown();
   } else {
     errorEl.textContent = `Credenciales incorrectas. Intentos restantes: ${LOGIN_MAX_ATTEMPTS - loginAttempts}.`;
   }
