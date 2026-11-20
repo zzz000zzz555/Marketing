@@ -599,15 +599,19 @@ function changeQuantity(productId, change) {
   persistCart();
 }
 
+let pendingCheckout = false;
+
 function checkout(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
   if (!currentUser) {
+    pendingCheckout = true;
     setAuthMode("login");
     openModal($("#authModal"));
     showToast("Inicia sesión para finalizar tu compra.", "user-round");
     return;
   }
   if (!cartQuantity()) return;
+  pendingCheckout = false;
   openModal($("#checkoutModal"));
 }
 
@@ -651,6 +655,10 @@ function handleAuth(event) {
   updateSideUser();
   closeModal();
   showToast(authMode === "register" ? "Tu cuenta está lista. ¡Bienvenido!" : `¡Hola, ${user.name}! Sesión iniciada.`, "circle-check");
+  if (pendingCheckout && cartQuantity()) {
+    pendingCheckout = false;
+    setTimeout(() => openModal($("#checkoutModal")), 250);
+  }
 }
 
 function showAuthError(message) {
@@ -659,8 +667,9 @@ function showAuthError(message) {
 
 async function submitOrder(event) {
   event.preventDefault();
+  const form = event.currentTarget;
   if (!currentUser || !cartQuantity()) return;
-  const formData = new FormData(event.currentTarget);
+  const formData = new FormData(form);
   const order = {
     id: `ND-${Date.now().toString().slice(-8)}`,
     date: new Date().toISOString(),
@@ -705,7 +714,7 @@ async function submitOrder(event) {
   cart = {};
   persistCart();
   renderProducts();
-  event.currentTarget.reset();
+  form.reset();
   closeModal();
   closeDrawer();
   showToast(`¡Compra completada! Pedido ${order.id}`, "party-popper");
