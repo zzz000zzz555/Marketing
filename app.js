@@ -1205,16 +1205,16 @@ $("#newsletterForm").addEventListener("submit", (event) => {
 });
 
 function initCampaignBubble() {
-  const bubble = $("#campaignBubble");
+  const bubble = document.getElementById("campaignBubble");
   if (!bubble || !activeCampaign.showBubble) return;
   if (sessionStorage.getItem("nordico_campaign_closed")) return;
-  $("#campaignBubbleBadge").textContent = activeCampaign.bubbleLabel || "";
-  $("#campaignBubbleTitle").textContent = activeCampaign.bubbleTitle || "";
-  $("#campaignBubbleSubtitle").textContent = activeCampaign.bubbleSubtitle || "";
-  const cta = $("#campaignBubbleCta");
+  document.getElementById("campaignBubbleBadge").textContent = activeCampaign.bubbleLabel || "";
+  document.getElementById("campaignBubbleTitle").textContent = activeCampaign.bubbleTitle || "";
+  document.getElementById("campaignBubbleSubtitle").textContent = activeCampaign.bubbleSubtitle || "";
+  const cta = document.getElementById("campaignBubbleCta");
   cta.textContent = activeCampaign.bubbleCtaText || "Ver ofertas";
   cta.href = activeCampaign.bubbleCtaUrl || "#catalogo";
-  const countdown = $("#campaignCountdown");
+  const countdown = document.getElementById("campaignCountdown");
   if (activeCampaign.showCountdown && activeCampaign.endsAt) {
     countdown.removeAttribute("hidden");
     updateCampaignCountdown();
@@ -1224,7 +1224,7 @@ function initCampaignBubble() {
   }
   bubble.removeAttribute("hidden");
   setTimeout(() => bubble.classList.add("show"), 1500);
-  $("#campaignBubbleClose").addEventListener("click", () => {
+  document.getElementById("campaignBubbleClose").addEventListener("click", () => {
     bubble.classList.remove("show");
     sessionStorage.setItem("nordico_campaign_closed", "1");
   });
