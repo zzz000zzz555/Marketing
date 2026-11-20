@@ -1,0 +1,65 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #f5f5f5; padding: 40px; }
+h1 { font-size: 40px; font-weight: 800; margin-bottom: 30px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+.card, .btn, .link, .img-wrap { border-radius: 12px; }
+
+/* Card lift */
+.card.lift { padding: 40px; background: #141414; border: 1px solid rgba(255,255,255,0.08); transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s; }
+.card.lift:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+
+/* Card glow */
+.card.glow { padding: 40px; background: #141414; border: 1px solid rgba(255,255,255,0.08); transition: box-shadow .3s; }
+.card.glow:hover { box-shadow: 0 0 0 1px #00e5ff, 0 0 30px rgba(0,229,255,0.3); }
+
+/* Border reveal */
+.card.border-reveal { padding: 40px; background: #141414; position: relative; overflow: hidden; }
+.card.border-reveal::before { content: ""; position: absolute; inset: 0; border: 2px solid #00e5ff; clip-path: inset(0 100% 0 0); transition: clip-path .4s; }
+.card.border-reveal:hover::before { clip-path: inset(0 0 0 0); }
+
+/* Content shift */
+.card.content-shift { padding: 40px; background: #141414; overflow: hidden; }
+.card.content-shift .cta { display: block; margin-top: 12px; transform: translateY(20px); opacity: 0; transition: transform .3s, opacity .3s; }
+.card.content-shift:hover .cta { transform: translateY(0); opacity: 1; }
+
+/* Button fill sweep */
+.btn { padding: 14px 24px; border: 1px solid #00e5ff; background: transparent; color: #00e5ff; cursor: pointer; position: relative; overflow: hidden; transition: color .3s; }
+.btn.fill-sweep::before { content: ""; position: absolute; inset: 0; background: #00e5ff; transform: scaleX(0); transform-origin: left; transition: transform .3s; z-index: -1; }
+.btn.fill-sweep:hover { color: #000; }
+.btn.fill-sweep:hover::before { transform: scaleX(1); }
+
+/* Ripple button */
+.btn.ripple-btn { position: relative; overflow: hidden; }
+.btn.ripple-btn::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle, rgba(0,229,255,0.3) 0%, transparent 70%); opacity: 0; transform: scale(0); transition: transform .5s, opacity .5s; }
+.btn.ripple-btn:hover::after { transform: scale(2); opacity: 1; }
+
+/* Underline grow */
+.btn.underline-grow { border: none; background: transparent; color: #f5f5f5; }
+.btn.underline-grow::after { content: ""; position: absolute; bottom: 8px; left: 50%; width: 60%; height: 2px; background: #00e5ff; transform: translateX(-50%) scaleX(0); transition: transform .3s; }
+.btn.underline-grow:hover::after { transform: translateX(-50%) scaleX(1); }
+
+/* Link sliding underline */
+.link { color: #f5f5f5; text-decoration: none; position: relative; display: inline-block; padding: 8px 0; }
+.link.sliding-underline::after { content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 2px; background: #00e5ff; transform: scaleX(0); transform-origin: left; transition: transform .3s; }
+.link.sliding-underline:hover::after { transform: scaleX(1); }
+
+/* Background highlight */
+.link.bg-highlight { padding: 8px 12px; border-radius: 6px; transition: background .2s; }
+.link.bg-highlight:hover { background: rgba(0,229,255,0.1); }
+
+/* Image zoom */
+.img-wrap { overflow: hidden; position: relative; }
+.img-wrap img { width: 100%; height: 200px; object-fit: cover; transition: transform .4s; }
+.img-wrap.zoom-pan:hover img { transform: scale(1.1); }
+
+/* Overlay fade */
+.img-wrap.overlay-fade .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: grid; place-items: center; color: #fff; opacity: 0; transition: opacity .3s; }
+.img-wrap.overlay-fade:hover .overlay { opacity: 1; }
+
+/* Grayscale to color */
+.img-wrap.grayscale img { filter: grayscale(1); transition: filter .4s; }
+.img-wrap.grayscale:hover img { filter: grayscale(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

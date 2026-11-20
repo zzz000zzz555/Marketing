@@ -1,0 +1,7 @@
+h1 { font-size: 40px; font-weight: 800; margin-bottom: 40px; }
+.category { margin-bottom: 48px; }
+.category h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; }
+.preview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px; }
+.preview { background: var(--color-surface); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 30px; display: grid; place-items: center; gap: 12px; min-height: 120px; }
+.preview span { font-size: 11px; color: var(--color-muted); text-transform: uppercase; letter-spacing: .1em; }
+.skel { background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }

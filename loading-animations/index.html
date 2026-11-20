@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loading Animations — Showcase</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/spinners.css">
+  <link rel="stylesheet" href="css/skeletons.css">
+  <link rel="stylesheet" href="css/progress.css">
+  <link rel="stylesheet" href="css/full-page.css">
+  <link rel="stylesheet" href="css/reduced-motion.css">
+</head>
+<body>
+  <main>
+    <h1>Loading Animations</h1>
+
+    <section class="category">
+      <h2>Spinners</h2>
+      <div class="preview-grid">
+        <div class="preview"><div class="spinner dots"></div><span>Dot spinner</span></div>
+        <div class="preview"><div class="spinner arc"></div><span>Arc spinner</span></div>
+        <div class="preview"><div class="spinner morph"></div><span>Morphing spinner</span></div>
+        <div class="preview"><div class="spinner logo"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#00e5ff" stroke-width="2" stroke-dasharray="100" stroke-dashoffset="100" class="logo-draw"/></svg></div><span>Logo spinner</span></div>
+      </div>
+    </section>
+
+    <section class="category">
+      <h2>Skeletons</h2>
+      <div class="preview-grid">
+        <div class="preview card-skel">
+          <div class="skel img"></div>
+          <div class="skel title"></div>
+          <div class="skel line"></div>
+          <div class="skel line short"></div>
+        </div>
+        <div class="preview table-skel">
+          <div class="skel row header"></div>
+          <div class="skel row"></div>
+          <div class="skel row"></div>
+          <div class="skel row"></div>
+          <div class="skel row"></div>
+        </div>
+        <div class="preview profile-skel">
+          <div class="skel avatar"></div>
+          <div class="skel name"></div>
+          <div class="skel bio"></div>
+          <div class="skel bio short"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="category">
+      <h2>Progress</h2>
+      <div class="preview-grid">
+        <div class="preview"><div class="progress-bar"><div class="fill" style="width:60%"></div></div><span>Linear (60%)</span></div>
+        <div class="preview"><svg class="progress-ring" viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" class="track"/><circle cx="40" cy="40" r="34" class="fill" style="stroke-dashoffset: 60"/></svg><span>Circular (70%)</span></div>
+        <div class="preview steps"><div class="step done">1</div><div class="step active">2</div><div class="step">3</div><div class="step">4</div></div>
+      </div>
+    </section>
+
+    <section class="category">
+      <h2>Full-page</h2>
+      <div class="preview-grid">
+        <div class="preview overlay-demo">
+          <div class="overlay-loader"><div class="spinner arc"></div><span>Cargando...</span></div>
+        </div>
+        <div class="preview splash-demo">
+          <div class="splash"><div class="logo">N</div><div class="bar"></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="js/main.js"></script>
+</body>
+</html>

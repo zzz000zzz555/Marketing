@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animated Cards — Showcase</title>
+  <link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+  <main>
+    <h1>Animated Cards</h1>
+    <section class="grid">
+      <div class="card flip-card">
+        <div class="card-inner">
+          <div class="card-front"><h3>Flip Card</h3><p>Pasa el cursor</p></div>
+          <div class="card-back"><h3>Detalles</h3><p>Contenido oculto revelado</p><button>Ver más</button></div>
+        </div>
+      </div>
+      <div class="card tilt-card" data-tilt>
+        <h3>Tilt Card</h3>
+        <p>Sigue el cursor en 3D</p>
+      </div>
+      <div class="card glow-card"><h3>Glow Border</h3><p>Borde animado</p></div>
+      <div class="card parallax-card">
+        <div class="layer bg"></div>
+        <div class="layer text"><h3>Parallax</h3><p>Capas a distinta velocidad</p></div>
+      </div>
+      <div class="card skeleton-card">
+        <div class="skel img"></div>
+        <div class="skel title"></div>
+        <div class="skel line"></div>
+        <div class="skel line short"></div>
+      </div>
+    </section>
+  </main>
+  <script src="js/cards.js"></script>
+</body>
+</html>

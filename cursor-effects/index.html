@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cursor Effects — Showcase</title>
+  <link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+  <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+  <div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
+  <div class="cursor-spotlight" id="cursorSpotlight" aria-hidden="true"></div>
+  <div class="cursor-label" id="cursorLabel" aria-hidden="true"></div>
+
+  <main>
+    <h1>Cursor Effects</h1>
+    <p class="lead">Mueve el cursor para ver los efectos. En touch devices se desactivan.</p>
+
+    <section class="demo-grid">
+      <button class="magnetic" data-cursor-text="Click">Botón magnético</button>
+      <a class="magnetic" href="#" data-cursor-text="View">Enlace magnético</a>
+      <div class="card ripple-surface" data-cursor-text="View">Card con ripple</div>
+      <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80" alt="Producto" data-cursor-text="View" class="demo-img">
+      <div class="draggable" data-cursor-text="Drag">Elemento arrastrable</div>
+    </section>
+
+    <section class="trail-demo">
+      <p>Mueve el cursor aquí para ver el trail de partículas.</p>
+    </section>
+  </main>
+
+  <canvas id="trailCanvas" aria-hidden="true"></canvas>
+
+  <script src="js/cursor.js"></script>
+</body>
+</html>
