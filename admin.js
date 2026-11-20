@@ -253,6 +253,69 @@ function renderDashboard() {
   $("#lowStockTable").innerHTML = low.length
     ? `<thead><tr><th>Producto</th><th>Stock</th></tr></thead><tbody>${low.map((p) => `<tr><td>${escapeHtml(p.name)}</td><td class="badge low">${readStorage(STORAGE_KEYS.stock, {})[p.id] ?? p.stock}</td></tr>`).join("")}</tbody>`
     : `<tbody><tr><td>Sin productos con stock bajo</td></tr></tbody>`;
+
+  renderCharts(products, orders, stock);
+}
+
+const chartInstances = {};
+function destroyChart(id) { if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; } }
+
+function renderCharts(products, orders, stockMap) {
+  if (typeof Chart === "undefined") return;
+  const stock = stockMap || readStorage(STORAGE_KEYS.stock, {});
+  Chart.defaults.color = "#9a9a9a";
+  Chart.defaults.borderColor = "rgba(255,255,255,0.08)";
+  Chart.defaults.font.family = "Inter";
+
+  // Sales by day
+  const salesByDay = {};
+  orders.forEach((o) => {
+    const day = new Date(o.date).toLocaleDateString("es-PE");
+    salesByDay[day] = (salesByDay[day] || 0) + (o.total || 0);
+  });
+  const salesLabels = Object.keys(salesByDay).slice(-10);
+  const salesData = salesLabels.map((d) => salesByDay[d]);
+  destroyChart("sales");
+  chartInstances.sales = new Chart($("#salesChart"), {
+    type: "line",
+    data: { labels: salesLabels, datasets: [{ label: "Ventas (S/)", data: salesData, borderColor: "#ffffff", backgroundColor: "rgba(255,255,255,0.1)", tension: 0.35, fill: true, pointRadius: 4, pointBackgroundColor: "#ffffff" }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  // Top products
+  const qtyByProduct = {};
+  orders.forEach((o) => o.items.forEach((i) => { qtyByProduct[i.name] = (qtyByProduct[i.name] || 0) + i.quantity; }));
+  const topEntries = Object.entries(qtyByProduct).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  destroyChart("top");
+  chartInstances.top = new Chart($("#topProductsChart"), {
+    type: "bar",
+    data: { labels: topEntries.map((e) => e[0]), datasets: [{ label: "Cantidad", data: topEntries.map((e) => e[1]), backgroundColor: "rgba(255,255,255,0.7)", borderRadius: 6 }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  // Stock by category
+  const stockByCat = {};
+  products.forEach((p) => { stockByCat[p.category] = (stockByCat[p.category] || 0) + (stock[p.id] ?? p.stock); });
+  destroyChart("stock");
+  chartInstances.stock = new Chart($("#stockChart"), {
+    type: "doughnut",
+    data: { labels: Object.keys(stockByCat), datasets: [{ data: Object.values(stockByCat), backgroundColor: ["#ffffff", "#b3b3b3", "#666666", "#333333", "#e5e5e5", "#808080", "#cccccc"], borderWidth: 0 }] },
+    options: { responsive: true, plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } } }
+  });
+
+  // Revenue by category
+  const revByCat = {};
+  orders.forEach((o) => o.items.forEach((i) => {
+    const p = products.find((x) => x.name === i.name);
+    const cat = p ? p.category : "Otros";
+    revByCat[cat] = (revByCat[cat] || 0) + i.price * i.quantity;
+  }));
+  destroyChart("rev");
+  chartInstances.rev = new Chart($("#revenueChart"), {
+    type: "bar",
+    data: { labels: Object.keys(revByCat), datasets: [{ label: "Ingresos", data: Object.values(revByCat), backgroundColor: "rgba(255,255,255,0.5)", borderRadius: 6 }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
 }
 
 function getAllOrders() {

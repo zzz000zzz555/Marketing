@@ -57,18 +57,24 @@
 
       <section class="view" id="view-dashboard">
         <div class="stats-grid">
-          <div class="stat-card"><span>Productos</span><strong id="statProducts">0</strong></div>
-          <div class="stat-card"><span>Pedidos</span><strong id="statOrders">0</strong></div>
-          <div class="stat-card"><span>Usuarios</span><strong id="statUsers">0</strong></div>
-          <div class="stat-card"><span>Ingresos</span><strong id="statRevenue">S/ 0.00</strong></div>
-          <div class="stat-card"><span>Stock bajo</span><strong id="statLowStock">0</strong></div>
-          <div class="stat-card"><span>Favoritos</span><strong id="statFavorites">0</strong></div>
+          <div class="stat-card glass"><span>Productos</span><strong id="statProducts">0</strong><small id="statProductsSub">—</small></div>
+          <div class="stat-card glass"><span>Pedidos</span><strong id="statOrders">0</strong><small id="statOrdersSub">—</small></div>
+          <div class="stat-card glass"><span>Usuarios</span><strong id="statUsers">0</strong><small id="statUsersSub">—</small></div>
+          <div class="stat-card glass"><span>Ingresos</span><strong id="statRevenue">S/ 0.00</strong><small id="statRevenueSub">—</small></div>
+          <div class="stat-card glass"><span>Stock bajo</span><strong id="statLowStock">0</strong><small>Requiere atención</small></div>
+          <div class="stat-card glass"><span>Favoritos</span><strong id="statFavorites">0</strong><small>Total acumulado</small></div>
         </div>
-        <div class="panel">
+        <div class="charts-grid">
+          <div class="panel glass"><h3>Ventas por día</h3><canvas id="salesChart" height="220"></canvas></div>
+          <div class="panel glass"><h3>Productos más vendidos</h3><canvas id="topProductsChart" height="220"></canvas></div>
+          <div class="panel glass"><h3>Stock por categoría</h3><canvas id="stockChart" height="220"></canvas></div>
+          <div class="panel glass"><h3>Ingresos por categoría</h3><canvas id="revenueChart" height="220"></canvas></div>
+        </div>
+        <div class="panel glass">
           <h3>Pedidos recientes</h3>
           <div class="table-wrap"><table id="recentOrdersTable"></table></div>
         </div>
-        <div class="panel">
+        <div class="panel glass">
           <h3>Productos con stock bajo</h3>
           <div class="table-wrap"><table id="lowStockTable"></table></div>
         </div>
@@ -163,6 +169,7 @@
   </div>
 
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/chart.js@4/dist/chart.umd.js"></script>
   <script src="admin.js" defer></script>
 </body>
 </html>
