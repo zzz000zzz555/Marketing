@@ -12,7 +12,9 @@ const STORAGE_KEYS = {
   settings: "nordico_settings",
   adminUser: "nordico_admin_user",
   adminSession: "nordico_admin_session",
-  adminLog: "nordico_admin_log"
+  adminLog: "nordico_admin_log",
+  campaign: "nordico_campaign",
+  auditLog: "nordico_audit_log"
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -66,11 +68,27 @@ async function seedAdmin() {
   logAction("Sistema", "Usuario admin inicial creado");
 }
 
-function logAction(user, action) {
-  const logs = readStorage(STORAGE_KEYS.adminLog, []);
-  logs.unshift({ date: new Date().toISOString(), user, action });
-  if (logs.length > 200) logs.length = 200;
-  writeStorage(STORAGE_KEYS.adminLog, logs);
+function logAction(user, action, meta = {}) {
+  const date = new Date().toISOString();
+  const legacy = readStorage(STORAGE_KEYS.adminLog, []);
+  legacy.unshift({ date, user, action });
+  if (legacy.length > 200) legacy.length = 200;
+  writeStorage(STORAGE_KEYS.adminLog, legacy);
+
+  // Registro unificado y append-only: acciones del admin y eventos del cliente.
+  const audit = readStorage(STORAGE_KEYS.auditLog, []);
+  audit.unshift({
+    id: crypto.randomUUID ? crypto.randomUUID() : `a-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    date,
+    actor: user || "sistema",
+    action,
+    entityType: meta.entityType || "system",
+    entityId: meta.entityId == null ? null : String(meta.entityId),
+    details: meta.details || action,
+    source: "admin"
+  });
+  if (audit.length > 2000) audit.length = 2000;
+  writeStorage(STORAGE_KEYS.auditLog, audit);
 }
 
 // ---------- Rate limiting ----------
@@ -231,7 +249,7 @@ async function renderView(view) {
   if (view === "users") renderUsers();
   if (view === "content") loadPolicyEditor();
   if (view === "campaign") loadCampaignEditor();
-  if (view === "audit") renderAudit();
+  if (view === "audit") { renderAudit(); renderAuditActivity(); }
   if (view === "settings") loadSettings();
   refreshIcons();
 }
@@ -343,7 +361,12 @@ function renderCharts(products, orders, stockMap) {
 
 function getAllOrders() {
   const all = readStorage(STORAGE_KEYS.orders, {});
-  return Object.values(all).flat();
+  return Object.entries(all).flatMap(([email, list]) =>
+    (Array.isArray(list) ? list : []).map((order) => ({
+      ...order,
+      customerEmail: order.customerEmail || email
+    }))
+  );
 }
 
 function tableOrders(orders) {
@@ -567,15 +590,24 @@ function renderUsers() {
     $("#usersTable").innerHTML = `<tbody><tr><td>Sin usuarios</td></tr></tbody>`;
     return;
   }
-  const rows = users.map((u) => `
+  const ordersByEmail = getAllOrders().reduce((acc, order) => {
+    const email = order.customerEmail || "";
+    acc[email] = (acc[email] || 0) + 1;
+    return acc;
+  }, {});
+  const rows = users.map((u) => {
+    const registered = u.createdAt ? new Date(u.createdAt).toLocaleDateString("es-PE") : "—";
+    return `
     <tr>
       <td>${escapeHtml(u.name)}</td>
       <td>${escapeHtml(maskEmail(u.email))}</td>
       <td>••••••</td>
       <td>${u.email === "demo@tienda.com" ? "Demo" : "Cliente"}</td>
-    </tr>
-  `).join("");
-  $("#usersTable").innerHTML = `<thead><tr><th>Nombre</th><th>Correo (enmascarado)</th><th>Contraseña</th><th>Rol</th></tr></thead><tbody>${rows}</tbody>`;
+      <td>${registered}</td>
+      <td>${ordersByEmail[u.email] || 0}</td>
+    </tr>`;
+  }).join("");
+  $("#usersTable").innerHTML = `<thead><tr><th>Nombre</th><th>Correo (enmascarado)</th><th>Contraseña</th><th>Rol</th><th>Registrado</th><th>Pedidos</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
 // ---------- Content / policies ----------
@@ -611,9 +643,10 @@ function savePolicy() {
 
 // ---------- Campaign ----------
 function loadCampaignEditor() {
-  const c = JSON.parse(localStorage.getItem("nordico_campaign") || "null") || {};
+  const c = readStorage(STORAGE_KEYS.campaign, {}) || {};
   $("#campShowBubble").checked = c.showBubble !== false;
   $("#campShowAnimations").checked = c.showAnimations !== false;
+  $("#campShowDecorations").checked = c.showDecorations !== false;
   $("#campThemeKey").value = c.themeKey || "default";
   $("#campVisualEffect").value = c.visualEffect || "none";
   $("#campBubbleLabel").value = c.bubbleLabel || "";
@@ -626,10 +659,33 @@ function loadCampaignEditor() {
   if (c.endsAt) $("#campEndsAt").value = new Date(c.endsAt).toISOString().slice(0,16);
 }
 
+function setDecorationsEnabled(enabled, reason) {
+  const stored = readStorage(STORAGE_KEYS.campaign, null);
+  const c = stored && typeof stored === "object" ? stored : {
+    showBubble: true,
+    showAnimations: true,
+    visualEffect: "none",
+    themeKey: "default",
+    showCountdown: false,
+    announcementText: ""
+  };
+  c.showDecorations = enabled;
+  writeStorage(STORAGE_KEYS.campaign, c);
+  const checkbox = $("#campShowDecorations");
+  if (checkbox) checkbox.checked = enabled;
+  logAction(getSession()?.username || "admin", enabled ? "Decoraciones reactivadas" : "Decoraciones retiradas", {
+    entityType: "campaign",
+    entityId: c.themeKey || "default",
+    details: reason || (enabled ? "SVG y partículas visibles nuevamente" : "Apagado de emergencia: SVG y partículas retirados")
+  });
+  showToast(enabled ? "Decoraciones activadas" : "Decoraciones retiradas de la tienda");
+}
+
 function saveCampaign() {
   const c = {
     showBubble: $("#campShowBubble").checked,
     showAnimations: $("#campShowAnimations").checked,
+    showDecorations: $("#campShowDecorations").checked,
     themeKey: $("#campThemeKey").value,
     visualEffect: $("#campVisualEffect").value,
     bubbleLabel: $("#campBubbleLabel").value.trim(),
@@ -641,8 +697,12 @@ function saveCampaign() {
     announcementText: $("#campAnnouncement").value.trim(),
     endsAt: $("#campEndsAt").value ? new Date($("#campEndsAt").value).toISOString() : null
   };
-  localStorage.setItem("nordico_campaign", JSON.stringify(c));
-  logAction(getSession()?.username || "admin", "Campaña actualizada");
+  writeStorage(STORAGE_KEYS.campaign, c);
+  logAction(getSession()?.username || "admin", "Campaña actualizada", {
+    entityType: "campaign",
+    entityId: c.themeKey,
+    details: `Tema ${c.themeKey} · decoraciones ${c.showDecorations ? "activas" : "retiradas"} · animaciones ${c.showAnimations ? "activas" : "desactivadas"}`
+  });
   showToast("Campaña guardada");
 }
 
@@ -659,7 +719,7 @@ function renderAudit() {
     ["Content Security Policy", "pass", "CSP definido en meta tag."],
     ["Almacenamiento local", "warn", "Demo usa localStorage; en producción usar backend seguro."],
     ["HTTPS", "pass", "GitHub Pages sirve por HTTPS."],
-    ["Auditoría de acciones", "pass", "Log de acciones de administrador."],
+    ["Auditoría de acciones", "pass", "Log unificado de admin, clientes, carrito y pedidos."],
     ["Control de acceso por roles", "warn", "Un solo rol (superadmin) en demo."],
     ["Copias de seguridad", "pass", "Exportación/importación de backup."],
     ["Gestión de vulnerabilidades", "warn", "Reporte por correo; sin programa formal."],
@@ -675,6 +735,28 @@ function renderAudit() {
     </tr>
   `).join("");
   $("#auditTable").innerHTML = `<thead><tr><th>Control</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+function renderAuditActivity() {
+  const table = $("#auditActivityTable");
+  if (!table) return;
+  const logs = readStorage(STORAGE_KEYS.auditLog, []);
+  if (!logs.length) {
+    table.innerHTML = `<tbody><tr><td colspan="6">Sin eventos registrados todavía.</td></tr></tbody>`;
+    return;
+  }
+  const rows = logs.slice(0, 200).map((entry) => {
+    const date = entry.date ? new Date(entry.date).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "medium" }) : "—";
+    return `<tr>
+      <td>${escapeHtml(date)}</td>
+      <td>${escapeHtml(entry.source || "—")}</td>
+      <td>${escapeHtml(entry.actor || "anónimo")}</td>
+      <td>${escapeHtml(entry.action || "—")}</td>
+      <td>${escapeHtml(entry.entityType || "—")}${entry.entityId ? ` #${escapeHtml(entry.entityId)}` : ""}</td>
+      <td>${escapeHtml(entry.details || "—")}</td>
+    </tr>`;
+  }).join("");
+  table.innerHTML = `<thead><tr><th>Fecha</th><th>Origen</th><th>Actor</th><th>Acción</th><th>Entidad</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
 // ---------- Settings ----------
@@ -897,6 +979,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#policyKeySelect").addEventListener("change", loadPolicyEditor);
   $("#savePolicyButton").addEventListener("click", savePolicy);
   $("#saveCampaignButton").addEventListener("click", saveCampaign);
+  $("#removeDecorButton")?.addEventListener("click", () => setDecorationsEnabled(false, "Retiro manual desde el panel"));
+  $("#restoreDecorButton")?.addEventListener("click", () => setDecorationsEnabled(true, "Reactivación manual desde el panel"));
   // Settings
   $("#saveSettingsButton").addEventListener("click", saveSettings);
   $("#backupButton").addEventListener("click", backupAll);

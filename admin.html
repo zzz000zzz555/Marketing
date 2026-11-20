@@ -131,6 +131,12 @@
           <p class="panel-note">Configura el globo flotante, la cuenta regresiva y las animaciones ambientales.</p>
           <label class="field"><span>Activar globo flotante</span><input type="checkbox" id="campShowBubble" checked></label>
           <label class="field"><span>Activar animaciones</span><input type="checkbox" id="campShowAnimations" checked></label>
+          <label class="field"><span>Mostrar decoraciones de temporada</span><input type="checkbox" id="campShowDecorations" checked></label>
+          <p class="panel-note">Si una decoración se puso por error, usa el apagado inmediato. No borra la campaña ni su configuración.</p>
+          <div class="decor-actions">
+            <button class="button" id="removeDecorButton" type="button"><i data-lucide="eye-off"></i> Quitar decoraciones ahora</button>
+            <button class="button" id="restoreDecorButton" type="button"><i data-lucide="eye"></i> Reactivar decoraciones</button>
+          </div>
           <label class="field"><span>Tema visual</span>
             <select id="campThemeKey">
               <option value="default">Por defecto</option>
@@ -185,6 +191,11 @@
           <h3>Auditoría de seguridad e ISO 27001</h3>
           <p class="panel-note">Checklist de controles implementados en la plataforma.</p>
           <div class="table-wrap"><table id="auditTable"></table></div>
+        </div>
+        <div class="panel glass" style="margin-top:18px;">
+          <h3>Registro de actividad (clientes, pedidos y admin)</h3>
+          <p class="panel-note">Eventos append-only: altas, ingresos, carrito, pedidos y cambios de campaña. Se conservan los 2000 más recientes.</p>
+          <div class="table-wrap"><table id="auditActivityTable"></table></div>
         </div>
       </section>
 

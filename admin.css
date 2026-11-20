@@ -78,6 +78,9 @@ a { color: inherit; text-decoration: none; }
   border-radius: 12px; box-shadow: 0 8px 20px rgba(14,165,164,0.25);
 }
 .button:hover { background: #0c8f8e; transform: translateY(-2px); box-shadow: 0 12px 28px rgba(14,165,164,0.35); }
+.decor-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+.decor-actions .button { background: transparent; color: var(--accent); box-shadow: none; }
+.decor-actions .button:hover { background: var(--accent); color: #fff; }
 .button-dark { background: var(--accent); color: #fff; }
 .login-hint { margin: 18px 0 8px; font-size: 11px; color: var(--muted); text-align: center; }
 .login-hint strong { color: var(--ink); }

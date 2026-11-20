@@ -498,36 +498,90 @@ html[data-mode="dark"] {
 }
 body { background: var(--bg-base); color: var(--text-primary); }
 
-/* ===== Festividades ===== */
-.season-decorations { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-.season-decorations svg { position: absolute; opacity: 0; transition: opacity .6s ease; }
-.deco-garland { top: 0; left: 0; width: 100%; height: 40px; }
-.deco-tree-left { bottom: 0; left: 10px; width: 60px; height: 90px; }
-.deco-tree-right { bottom: 0; right: 10px; width: 60px; height: 90px; }
-.deco-snowman { bottom: 10px; right: 80px; width: 50px; height: 75px; }
-.deco-candycane { bottom: 20px; left: 80px; width: 32px; height: 64px; }
+/* ===== Festividades: cuatro contenedores SVG + partículas ===== */
+.season-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .5s cubic-bezier(.16,1,.3,1), visibility .5s;
+}
+.season-layer.is-active { opacity: 1; visibility: visible; }
+.season-layer .deco-svg {
+  position: absolute;
+  display: block;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translate3d(0,0,0) scale(var(--deco-scale, 1));
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.12));
+}
+.season-header-decor { top: 0; bottom: auto; height: 96px; }
+.season-hero-decor { top: 12%; bottom: auto; height: 66%; }
+.season-divider-decor { top: 44%; bottom: auto; height: 170px; }
+.season-footer-decor { top: auto; bottom: 0; height: 190px; }
 
-html[data-season="navidad"] .deco-garland,
-html[data-season="navidad"] .deco-tree-left,
-html[data-season="navidad"] .deco-tree-right,
-html[data-season="navidad"] .deco-snowman,
-html[data-season="navidad"] .deco-candycane { opacity: 1; }
+.deco-garland { top: 0; left: 0; width: 100%; height: 90px; }
+.deco-tree { width: clamp(90px, 11vw, 150px); height: auto; bottom: 0; }
+.deco-tree-left { left: 4%; }
+.deco-tree-right { right: 4%; }
+.deco-snowman { width: 96px; bottom: 2%; right: 16%; }
+.deco-cane { width: 38px; height: 82px; bottom: 0; }
+.deco-cane-left { left: 9%; }
+.deco-cane-right { right: 9%; }
+.deco-rosette { width: clamp(110px, 14vw, 170px); top: 8%; right: 7%; }
+.deco-cenefa { left: 0; bottom: 0; width: 100%; height: 40px; opacity: .7; }
+.deco-miniflag { left: 50%; bottom: 0; width: min(300px, 60%); transform: translate3d(-50%,0,0); }
+.deco-flag { width: 120px; bottom: 8%; left: 6%; transform-origin: left center; }
+.deco-firework { width: clamp(130px, 16vw, 190px); top: 2%; left: 16%; }
+.deco-stars { top: 0; left: 0; width: 100%; height: 80px; }
+.deco-streamer { left: 50%; bottom: 0; width: min(320px, 70%); height: 70px; transform: translate3d(-50%,0,0); }
+.deco-sparks { width: 200px; bottom: 8%; right: 8%; }
+.deco-neon-wave { top: 0; left: 0; width: 100%; height: 80px; }
+.deco-neon-grid { inset: 0; width: 100%; height: 100%; opacity: .5; filter: none; }
+.deco-neon-badge { width: 140px; top: 12%; right: 9%; }
+.deco-neon-bolt { width: 80px; left: 50%; bottom: 0; transform: translate3d(-50%,0,0); }
+.deco-neon-orbs { width: 200px; bottom: 8%; right: 8%; }
+.deco-heart { width: clamp(80px, 9vw, 110px); top: 8%; left: 9%; }
+.deco-heart-cluster { left: 50%; bottom: 0; width: min(220px, 60%); transform: translate3d(-50%,0,0); }
 
-html[data-season="fiestas-patrias"] .deco-garland { opacity: 1; }
-html[data-season="fiestas-patrias"] .deco-garland path { stroke: #B91C1C; }
-html[data-season="fiestas-patrias"] .deco-garland circle { fill: #B91C1C; }
+.deco-float { animation: decoFloat 7s ease-in-out infinite alternate; }
+.deco-twinkle { animation: decoTwinkle 2.4s ease-in-out infinite alternate; }
+.deco-sway { transform-origin: top center; animation: decoSway 4s ease-in-out infinite alternate; }
+.deco-pulse { animation: decoPulse 3s ease-in-out infinite; }
+.deco-wave { animation: decoWave 5s ease-in-out infinite alternate; }
 
-html[data-season="anio-nuevo"] .deco-garland { opacity: 1; }
-html[data-season="anio-nuevo"] .deco-garland path { stroke: #EAB308; }
-html[data-season="anio-nuevo"] .deco-garland circle { fill: #EAB308; }
+@keyframes decoFloat {
+  from { transform: translate3d(0,0,0) scale(var(--deco-scale, 1)); }
+  to { transform: translate3d(0,-14px,0) scale(var(--deco-scale, 1)); }
+}
+@keyframes decoTwinkle { from { opacity: .4; } to { opacity: 1; } }
+@keyframes decoSway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@keyframes decoPulse {
+  0%, 100% { transform: scale(var(--deco-scale, 1)); opacity: .85; }
+  50% { transform: scale(calc(var(--deco-scale, 1) * 1.06)); opacity: 1; }
+}
+@keyframes decoWave {
+  from { transform: rotate(-4deg) skewX(-3deg) scale(var(--deco-scale, 1)); }
+  to { transform: rotate(4deg) skewX(3deg) scale(var(--deco-scale, 1)); }
+}
 
-/* Ocultar decoraciones en checkout/carrito/reclamaciones */
-body.checkout-open .season-decorations,
-body.modal-open .season-decorations { display: none; }
-
-/* Modo rendimiento */
-html.reduce-motion .season-decorations,
+/* Apagado total (gestor) y pausa durante interacción */
+html[data-decor="off"] .season-layer,
+html[data-decor="off"] .campaign-canvas,
+html[data-animations="off"] .campaign-canvas,
+html[data-animations="off"] .deco-svg,
+html.reduce-motion .season-layer,
 html.reduce-motion .campaign-canvas { display: none !important; }
+body.checkout-open .season-layer,
+body.modal-open .season-layer,
+body.cart-open .season-layer,
+body.drawer-open .season-layer,
+body.checkout-open .campaign-canvas,
+body.modal-open .campaign-canvas { opacity: 0; visibility: hidden; }
+
 html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
   animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important; scroll-behavior: auto !important;

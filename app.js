@@ -9,6 +9,31 @@ const STORAGE_KEYS = {
   policies: "nordico_policies",
   settings: "nordico_settings"
 };
+
+// Registro append-only de eventos de clientes y pedidos (consultable desde el admin).
+const AUDIT_LOG_KEY = "nordico_audit_log";
+const AUDIT_MAX_ENTRIES = 2000;
+
+function auditEvent(action, entityType, entityId, details) {
+  try {
+    const logs = readStorage(AUDIT_LOG_KEY, []);
+    logs.unshift({
+      id: crypto.randomUUID ? crypto.randomUUID() : `a-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      date: new Date().toISOString(),
+      actor: currentUser ? currentUser.email : "anonimo",
+      action,
+      entityType,
+      entityId: entityId == null ? null : String(entityId),
+      details,
+      source: "storefront"
+    });
+    if (logs.length > AUDIT_MAX_ENTRIES) logs.length = AUDIT_MAX_ENTRIES;
+    writeStorage(AUDIT_LOG_KEY, logs);
+  } catch (error) {
+    console.error("No se pudo registrar en la auditoría", error);
+  }
+}
+
 let TAX_RATE = 0.18;
 try {
   const s = readStorage(STORAGE_KEYS.settings, null);
@@ -211,6 +236,7 @@ function toggleFavorite(productId) {
   if (isFavorite(productId)) favorites = favorites.filter((id) => id !== productId);
   else favorites = [...favorites, productId];
   writeStorage(favoritesKey(), favorites);
+  auditEvent("FAVORITE_TOGGLED", "favorite", productId, favorites.includes(productId) ? "Agregado a favoritos" : "Quitado de favoritos");
   renderProducts();
   renderFavoritesCount();
   if (supabaseClient && currentUser) {
@@ -562,6 +588,7 @@ function addToCart(productId) {
   }
   cart[productId] = quantity + 1;
   persistCart();
+  auditEvent("CART_UPDATED", "cart", productId, `${product.name} · cantidad ${cart[productId]}`);
   flyToCart(productId);
   showToast(`${product.name} se agregó a tu bolsa.`, "shopping-bag");
 }
@@ -601,6 +628,7 @@ function changeQuantity(productId, change) {
   if (next <= 0) delete cart[productId];
   else if (next <= getStock(productId)) cart[productId] = next;
   persistCart();
+  auditEvent("CART_UPDATED", "cart", productId, `Cantidad final ${next > 0 ? next : 0}`);
 }
 
 let pendingCheckout = false;
@@ -631,17 +659,26 @@ function handleAuth(event) {
     if (!name) return showAuthError("Escribe tu nombre.");
     if (password.length < 6) return showAuthError("La contraseña debe tener al menos 6 caracteres.");
     if (users.some((item) => item.email.toLowerCase() === email)) return showAuthError("Ya existe una cuenta con ese correo.");
-    user = { name, email, password };
+    user = { name, email, password, createdAt: new Date().toISOString() };
     users.push(user);
     writeStorage(STORAGE_KEYS.users, users);
   } else {
     user = users.find((item) => item.email.toLowerCase() === email && item.password === password);
-    if (!user) return showAuthError("Correo o contraseña incorrectos.");
+    if (!user) {
+      auditEvent("USER_LOGIN_FAILED", "user", email, "Credenciales inválidas");
+      return showAuthError("Correo o contraseña incorrectos.");
+    }
   }
 
   const oldCartKey = cartKey();
   currentUser = { name: user.name, email: user.email };
   writeStorage(STORAGE_KEYS.session, currentUser);
+  auditEvent(
+    authMode === "register" ? "USER_REGISTERED" : "USER_LOGIN",
+    "user",
+    email,
+    authMode === "register" ? "Cuenta creada y sesión iniciada" : "Inicio de sesión exitoso"
+  );
   cart = readStorage(`nordico_cart_${currentUser.email}`, {});
   favorites = readStorage(`nordico_favorites_${currentUser.email}`, []);
   if (oldCartKey === "nordico_cart_guest") {
@@ -691,6 +728,7 @@ async function submitOrder(event) {
   const orders = readStorage(STORAGE_KEYS.orders, {});
   orders[currentUser.email] = [...(orders[currentUser.email] || []), order];
   writeStorage(STORAGE_KEYS.orders, orders);
+  auditEvent("ORDER_CREATED", "order", order.id, `${order.id} · ${order.items.length} índice(s) · total S/ ${order.total}`);
   // Sync to Supabase
   if (typeof initSupabase === "function") initSupabase();
   if (supabaseClient) {
@@ -1169,6 +1207,7 @@ document.querySelectorAll("[data-close-side]").forEach((button) => button.addEve
 $("#sideAuthButton").addEventListener("click", () => {
   closeSideDrawer();
   if (currentUser) {
+    auditEvent("USER_LOGOUT", "session", currentUser.email, "Cierre de sesión");
     currentUser = null;
     writeStorage(STORAGE_KEYS.session, null);
     cart = readStorage(cartKey(), {});
@@ -1299,13 +1338,16 @@ $("#cartItems").addEventListener("click", (event) => {
   const removeButton = event.target.closest("[data-remove]");
   if (quantityButton) changeQuantity(Number(quantityButton.dataset.quantity), Number(quantityButton.dataset.change));
   if (removeButton) {
-    delete cart[Number(removeButton.dataset.remove)];
+    const removedId = Number(removeButton.dataset.remove);
+    delete cart[removedId];
     persistCart();
+    auditEvent("CART_ITEM_REMOVED", "cart", removedId, "Ítem eliminado de la bolsa");
   }
 });
 $("#clearCartButton").addEventListener("click", () => {
   cart = {};
   persistCart();
+  auditEvent("CART_CLEARED", "cart", null, "Bolsa vaciada");
   showToast("Tu bolsa quedó vacía.", "trash-2");
 });
 $("#checkoutButton").addEventListener("click", checkout);
@@ -1315,6 +1357,7 @@ $("#productDetailAdd").addEventListener("click", () => {
 });
 $("#accountButton").addEventListener("click", () => {
   if (currentUser) {
+    auditEvent("USER_LOGOUT", "session", currentUser.email, "Cierre de sesión");
     currentUser = null;
     writeStorage(STORAGE_KEYS.session, null);
     cart = readStorage(cartKey(), {});
@@ -1428,8 +1471,11 @@ $("#newsletterForm").addEventListener("submit", (event) => {
 function applyCampaignTheme() {
   const key = (activeCampaign.themeKey || "default");
   const preset = THEME_PRESETS[key] || THEME_PRESETS.default;
+  const root = document.documentElement;
   document.body.setAttribute("data-theme", key);
-  document.documentElement.setAttribute("data-season", key);
+  root.setAttribute("data-season", key);
+  root.setAttribute("data-decor", activeCampaign.showDecorations !== false ? "on" : "off");
+  root.setAttribute("data-animations", activeCampaign.showAnimations !== false ? "on" : "off");
   document.body.style.setProperty("--campaign-primary", preset.primary);
   document.body.style.setProperty("--campaign-accent", preset.accent);
   document.body.style.setProperty("--campaign-bg", preset.bg);
@@ -1443,7 +1489,18 @@ function applyCampaignTheme() {
   } else {
     document.body.classList.remove("dark");
   }
+  window.dispatchEvent(new CustomEvent("nordico:seasonchange"));
 }
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== "nordico_campaign" || !event.newValue) return;
+  try {
+    activeCampaign = JSON.parse(event.newValue);
+    applyCampaignTheme();
+  } catch (error) {
+    console.warn("Campaña remota inválida", error);
+  }
+});
 
 function initCampaignBubble() {
   window.__bubbleStarted = true;
@@ -1491,39 +1548,6 @@ function updateCampaignCountdown() {
   countdown.innerHTML = `<span>${d}d</span><span>${String(h).padStart(2,"0")}h</span><span>${String(m).padStart(2,"0")}m</span><span>${String(s).padStart(2,"0")}s</span>`;
 }
 
-function initCampaignCanvas() {
-  const canvas = $("#campaignCanvas");
-  if (!canvas || !activeCampaign.showAnimations) return;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const ctx = canvas.getContext("2d");
-  let particles = [];
-  const effect = activeCampaign.visualEffect || "none";
-  if (effect === "none") return;
-  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-  resize();
-  window.addEventListener("resize", resize);
-  if (effect === "snow") {
-    for (let i = 0; i < 60; i++) particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 1+Math.random()*2, s: 0.3+Math.random()*0.8 });
-  } else if (effect === "confetti") {
-    for (let i = 0; i < 40; i++) particles.push({ x: Math.random()*canvas.width, y: -Math.random()*canvas.height, r: 2+Math.random()*3, s: 1+Math.random()*2, c: Math.random() > 0.5 ? "#dc2626" : "#ffffff", rot: Math.random()*Math.PI });
-  } else if (effect === "sparkles") {
-    for (let i = 0; i < 30; i++) particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 1+Math.random()*2, s: 0.2+Math.random()*0.5, a: Math.random() });
-  }
-  function draw() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    if (effect === "snow") {
-      ctx.fillStyle = "rgba(255,255,255,0.8)";
-      particles.forEach(p => { ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); p.y += p.s; p.x += Math.sin(p.y*0.01)*0.3; if (p.y > canvas.height) { p.y = -5; p.x = Math.random()*canvas.width; } });
-    } else if (effect === "confetti") {
-      particles.forEach(p => { ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c; ctx.fillRect(-p.r,-p.r,p.r*2,p.r*2); ctx.restore(); p.y += p.s; p.rot += 0.05; if (p.y > canvas.height) { p.y = -10; p.x = Math.random()*canvas.width; } });
-    } else if (effect === "sparkles") {
-      particles.forEach(p => { p.a += 0.02; const alpha = (Math.sin(p.a)+1)/2; ctx.fillStyle = `rgba(255,215,0,${alpha})`; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); p.y -= p.s; if (p.y < -5) { p.y = canvas.height+5; p.x = Math.random()*canvas.width; } });
-    }
-    requestAnimationFrame(draw);
-  }
-  draw();
-}
-
 async function initApp() {
   try {
     await loadProductsFromSupabase();
@@ -1534,7 +1558,6 @@ async function initApp() {
     refreshIcons();
     applyCampaignTheme();
     initCampaignBubble();
-    initCampaignCanvas();
   } catch (e) {
     console.error("initApp error:", e);
   }
