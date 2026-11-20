@@ -435,6 +435,31 @@ body.font-xlarge { font-size: 130%; }
   .campaign-canvas { display: none; }
 }
 
+/* Temas de campaña dinámicos */
+body[data-theme="navidad"] { --ink: #165b33; --accent: #c41e3a; background: #fef9f0; }
+body[data-theme="navidad"] .hero { background: linear-gradient(135deg, #fef9f0, #f0e6d2); }
+body[data-theme="navidad"] .button-dark { background: #c41e3a; border-color: #c41e3a; }
+body[data-theme="navidad"] .cart-bubble { background: radial-gradient(circle at 30% 30%, #c41e3a, #165b33); }
+
+body[data-theme="anio-nuevo"] { --ink: #ffd700; --muted: #b8b8d0; --line: #2a2a4e; --paper: #0f0f1e; --white: #1a1a3e; --soft: #1a1a3e; color-scheme: dark; }
+body[data-theme="anio-nuevo"] .site-header { background: rgba(15,15,30,0.85); }
+body[data-theme="anio-nuevo"] .hero { background: linear-gradient(135deg, #0f0f1e, #1a1a3e); }
+body[data-theme="anio-nuevo"] .button-dark { background: #ffd700; color: #0f0f1e; border-color: #ffd700; }
+
+body[data-theme="cyber"] { --ink: #00ff88; --muted: #808080; --line: #1a1a1a; --paper: #0a0a0a; --white: #111111; --soft: #111111; color-scheme: dark; }
+body[data-theme="cyber"] .site-header { background: rgba(10,10,10,0.9); }
+body[data-theme="cyber"] .hero { background: linear-gradient(135deg, #0a0a0a, #111111); }
+body[data-theme="cyber"] .button-dark { background: #00ff88; color: #0a0a0a; border-color: #00ff88; }
+body[data-theme="cyber"] .announcement { background: #00ff88; color: #0a0a0a; }
+
+body[data-theme="san-valentin"] { --ink: #9f1239; --accent: #fb7185; --paper: #fff1f2; --soft: #ffe4e6; }
+body[data-theme="san-valentin"] .hero { background: linear-gradient(135deg, #fff1f2, #ffe4e6); }
+body[data-theme="san-valentin"] .button-dark { background: #fb7185; border-color: #fb7185; }
+
+body[data-theme="fiestas-patrias"] { --ink: #b91c1c; --accent: #b91c1c; --paper: #fef2f2; --soft: #fee2e2; }
+body[data-theme="fiestas-patrias"] .hero { background: linear-gradient(135deg, #fef2f2, #fee2e2); }
+body[data-theme="fiestas-patrias"] .button-dark { background: #b91c1c; border-color: #b91c1c; }
+
 body.modal-open { overflow: hidden; }
 @media (max-width: 900px) {
   .site-header { padding: 0 5%; }

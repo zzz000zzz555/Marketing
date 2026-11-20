@@ -215,6 +215,7 @@ async function renderView(view) {
   const titles = {
     dashboard: "Dashboard",
     products: "Productos",
+    categories: "Categorías",
     orders: "Pedidos",
     users: "Usuarios",
     content: "Contenido",
@@ -225,6 +226,7 @@ async function renderView(view) {
   $("#viewTitle").textContent = titles[view] || view;
   if (view === "dashboard") await renderDashboard();
   if (view === "products") await renderProducts();
+  if (view === "categories") await renderCategoriesAdmin();
   if (view === "orders") await renderOrders();
   if (view === "users") renderUsers();
   if (view === "content") loadPolicyEditor();
@@ -360,6 +362,68 @@ function maskEmail(email) {
   const [u, d] = email.split("@");
   const masked = u.length <= 2 ? u[0] + "***" : u.slice(0, 2) + "***";
   return `${masked}@${d}`;
+}
+
+// ---------- Categories ----------
+async function renderCategoriesAdmin() {
+  const cats = readStorage("nordico_categories", []);
+  const products = readStorage(STORAGE_KEYS.products, []);
+  const rows = cats.map((c) => `
+    <tr>
+      <td>${escapeHtml(c.name)}</td>
+      <td>${escapeHtml(c.slug)}</td>
+      <td>${products.filter((p) => p.category === c.name).length}</td>
+      <td class="row-actions"><button class="danger" data-delete-cat="${escapeHtml(c.slug)}">Eliminar</button></td>
+    </tr>
+  `).join("");
+  $("#categoriesTable").innerHTML = cats.length
+    ? `<thead><tr><th>Nombre</th><th>Slug</th><th>Productos</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody>`
+    : `<tbody><tr><td>Sin categorías. Se derivan de los productos.</td></tr></tbody>`;
+}
+
+function openCategoryModal(cat = null) {
+  $("#categoryModalTitle").textContent = cat ? "Editar categoría" : "Nueva categoría";
+  $("#categoryId").value = cat ? cat.slug : "";
+  $("#categoryName").value = cat ? cat.name : "";
+  $("#categorySlug").value = cat ? cat.slug : "";
+  $("#categoryError").textContent = "";
+  $("#modalBackdrop").hidden = false;
+  $("#categoryModal").hidden = false;
+}
+
+function closeCategoryModal() {
+  $("#categoryModal").hidden = true;
+  $("#modalBackdrop").hidden = true;
+}
+
+function saveCategory(event) {
+  event.preventDefault();
+  const name = $("#categoryName").value.trim();
+  const slug = $("#categorySlug").value.trim();
+  const errorEl = $("#categoryError");
+  errorEl.textContent = "";
+  if (!name || !slug) { errorEl.textContent = "Completa nombre y slug."; return; }
+  const cats = readStorage("nordico_categories", []);
+  if (cats.some((c) => c.slug === slug && c.slug !== $("#categoryId").value)) {
+    errorEl.textContent = "El slug ya existe.";
+    return;
+  }
+  const idx = cats.findIndex((c) => c.slug === $("#categoryId").value);
+  if (idx === -1) cats.push({ name, slug });
+  else cats[idx] = { name, slug };
+  writeStorage("nordico_categories", cats);
+  logAction(getSession()?.username || "admin", `Categoría guardada: ${name}`);
+  closeCategoryModal();
+  renderCategoriesAdmin();
+  showToast("Categoría guardada");
+}
+
+function deleteCategory(slug) {
+  if (!confirm("¿Eliminar esta categoría?")) return;
+  const cats = readStorage("nordico_categories", []).filter((c) => c.slug !== slug);
+  writeStorage("nordico_categories", cats);
+  logAction(getSession()?.username || "admin", `Categoría eliminada: ${slug}`);
+  renderCategoriesAdmin();
 }
 
 // ---------- Products ----------
@@ -547,6 +611,7 @@ function loadCampaignEditor() {
   const c = JSON.parse(localStorage.getItem("nordico_campaign") || "null") || {};
   $("#campShowBubble").checked = c.showBubble !== false;
   $("#campShowAnimations").checked = c.showAnimations !== false;
+  $("#campThemeKey").value = c.themeKey || "default";
   $("#campVisualEffect").value = c.visualEffect || "none";
   $("#campBubbleLabel").value = c.bubbleLabel || "";
   $("#campBubbleTitle").value = c.bubbleTitle || "";
@@ -554,6 +619,7 @@ function loadCampaignEditor() {
   $("#campBubbleCtaText").value = c.bubbleCtaText || "";
   $("#campBubbleCtaUrl").value = c.bubbleCtaUrl || "";
   $("#campShowCountdown").checked = !!c.showCountdown;
+  $("#campAnnouncement").value = c.announcementText || "";
   if (c.endsAt) $("#campEndsAt").value = new Date(c.endsAt).toISOString().slice(0,16);
 }
 
@@ -561,6 +627,7 @@ function saveCampaign() {
   const c = {
     showBubble: $("#campShowBubble").checked,
     showAnimations: $("#campShowAnimations").checked,
+    themeKey: $("#campThemeKey").value,
     visualEffect: $("#campVisualEffect").value,
     bubbleLabel: $("#campBubbleLabel").value.trim(),
     bubbleTitle: $("#campBubbleTitle").value.trim(),
@@ -568,6 +635,7 @@ function saveCampaign() {
     bubbleCtaText: $("#campBubbleCtaText").value.trim(),
     bubbleCtaUrl: $("#campBubbleCtaUrl").value.trim(),
     showCountdown: $("#campShowCountdown").checked,
+    announcementText: $("#campAnnouncement").value.trim(),
     endsAt: $("#campEndsAt").value ? new Date($("#campEndsAt").value).toISOString() : null
   };
   localStorage.setItem("nordico_campaign", JSON.stringify(c));
@@ -801,6 +869,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     showToast("Actualizado");
   });
   // Products
+  $("#addCategoryButton").addEventListener("click", () => openCategoryModal());
+  $("#categoriesTable").addEventListener("click", (e) => {
+    const del = e.target.closest("[data-delete-cat]");
+    if (del) deleteCategory(del.dataset.deleteCat);
+  });
+  $("#categoryForm").addEventListener("submit", saveCategory);
   $("#addProductButton").addEventListener("click", () => openProductModal());
   $("#productsTable").addEventListener("click", (e) => {
     const edit = e.target.closest("[data-edit]");
@@ -813,8 +887,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (del) deleteProduct(Number(del.dataset.delete));
   });
   $("#productForm").addEventListener("submit", saveProduct);
-  $$(".modal-close, [data-close-modal]").forEach((b) => b.addEventListener("click", closeProductModal));
-  $("#modalBackdrop").addEventListener("click", (e) => { if (e.target === $("#modalBackdrop")) closeProductModal(); });
+  function closeAllModals() { closeProductModal(); closeCategoryModal(); }
+  $$(".modal-close, [data-close-modal]").forEach((b) => b.addEventListener("click", closeAllModals));
+  $("#modalBackdrop").addEventListener("click", (e) => { if (e.target === $("#modalBackdrop")) closeAllModals(); });
   // Content
   $("#policyKeySelect").addEventListener("change", loadPolicyEditor);
   $("#savePolicyButton").addEventListener("click", savePolicy);

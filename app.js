@@ -106,17 +106,28 @@ let currentPage = 1;
 const favoritesKey = () => `nordico_favorites_${currentUser ? currentUser.email : "guest"}`;
 let favorites = readStorage(favoritesKey(), []);
 let lastOrders = [];
+const THEME_PRESETS = {
+  default: { primary: "#0a0a0a", accent: "#0a0a0a", bg: "#ffffff", heroBg: "#f5f5f5", announcement: "ENVÍO GRATIS EN PEDIDOS MAYORES A S/ 250" },
+  navidad: { primary: "#165b33", accent: "#c41e3a", bg: "#fef9f0", heroBg: "#f0e6d2", announcement: "🎄 ¡FELIZ NAVIDAD! Hasta 40% OFF en combos de regalo" },
+  "anio-nuevo": { primary: "#1a1a2e", accent: "#ffd700", bg: "#0f0f1e", heroBg: "#1a1a3e", announcement: "✨ ¡FELIZ AÑO NUEVO! Nuevos comienzos, nuevas ofertas" },
+  cyber: { primary: "#000000", accent: "#00ff88", bg: "#0a0a0a", heroBg: "#111111", announcement: "⚡ CYBER WOW: Hasta 50% OFF por tiempo limitado" },
+  "san-valentin": { primary: "#9f1239", accent: "#fb7185", bg: "#fff1f2", heroBg: "#ffe4e6", announcement: "💖 SAN VALENTÍN: Regalos perfectos para esa persona especial" },
+  "fiestas-patrias": { primary: "#b91c1c", accent: "#ffffff", bg: "#fef2f2", heroBg: "#fee2e2", announcement: "🇵🇪 ¡FELICES FIESTAS PATRIAS! Ofertas peruanas" }
+};
+
 const defaultCampaign = {
   showBubble: true,
   showAnimations: true,
   visualEffect: "none",
+  themeKey: "default",
   bubbleLabel: "✨ ¡COMENZÓ!",
   bubbleTitle: "Damos inicio a la temporada",
   bubbleSubtitle: "Hasta 40% OFF en combos de regalo y envío gratis desde S/ 250.",
   bubbleCtaText: "Ver ofertas",
   bubbleCtaUrl: "#catalogo",
   endsAt: new Date(Date.now() + 7 * 86400000).toISOString(),
-  showCountdown: true
+  showCountdown: true,
+  announcementText: ""
 };
 let activeCampaign = (function () {
   try { return JSON.parse(localStorage.getItem("nordico_campaign")) || defaultCampaign; }
@@ -190,7 +201,9 @@ function escapeHtml(value) {
 }
 
 function renderCategories() {
-  const categories = ["Todos", ...new Set(products.map((product) => product.category)), "Favoritos"];
+  const storedCats = readStorage("nordico_categories", []);
+  const productCats = [...new Set(products.map((product) => product.category))];
+  const categories = ["Todos", ...(storedCats.length ? storedCats.map((c) => c.name) : productCats), "Favoritos"];
   $("#categoryTabs").innerHTML = categories.map((category) => `
     <button class="filter-tab${activeCategory === category ? " active" : ""}" data-category="${escapeHtml(category)}" aria-pressed="${activeCategory === category}">${escapeHtml(category)}</button>
   `).join("");
@@ -1204,6 +1217,25 @@ $("#newsletterForm").addEventListener("submit", (event) => {
   showToast("¡Gracias por sumarte a la comunidad!", "mail-check");
 });
 
+function applyCampaignTheme() {
+  const key = (activeCampaign.themeKey || "default");
+  const preset = THEME_PRESETS[key] || THEME_PRESETS.default;
+  document.body.setAttribute("data-theme", key);
+  document.body.style.setProperty("--campaign-primary", preset.primary);
+  document.body.style.setProperty("--campaign-accent", preset.accent);
+  document.body.style.setProperty("--campaign-bg", preset.bg);
+  document.body.style.setProperty("--campaign-hero-bg", preset.heroBg);
+  const ann = activeCampaign.announcementText || preset.announcement;
+  const annEl = document.querySelector(".announcement");
+  if (annEl) annEl.textContent = ann;
+  // dark/light based on theme
+  if (key === "anio-nuevo" || key === "cyber") {
+    document.body.classList.add("dark");
+  } else {
+    document.body.classList.remove("dark");
+  }
+}
+
 function initCampaignBubble() {
   window.__bubbleStarted = true;
   const bubble = document.getElementById("campaignBubble");
@@ -1291,6 +1323,7 @@ async function initApp() {
     renderHeader();
     renderCart();
     refreshIcons();
+    applyCampaignTheme();
     initCampaignBubble();
     initCampaignCanvas();
   } catch (e) {

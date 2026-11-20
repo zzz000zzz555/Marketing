@@ -35,6 +35,7 @@
       <nav class="sidebar-nav" aria-label="Navegación admin">
         <button data-view="dashboard" class="active"><i data-lucide="layout-dashboard"></i>Dashboard</button>
         <button data-view="products"><i data-lucide="package"></i>Productos</button>
+        <button data-view="categories"><i data-lucide="layers"></i>Categorías</button>
         <button data-view="orders"><i data-lucide="shopping-bag"></i>Pedidos</button>
         <button data-view="users"><i data-lucide="users"></i>Usuarios</button>
         <button data-view="content"><i data-lucide="file-text"></i>Contenido</button>
@@ -89,6 +90,16 @@
         </div>
       </section>
 
+      <section class="view" id="view-categories" hidden>
+        <div class="panel glass">
+          <div class="panel-head">
+            <h3>Gestión de categorías</h3>
+            <button class="button button-dark" id="addCategoryButton" type="button"><i data-lucide="plus"></i> Nueva categoría</button>
+          </div>
+          <div class="table-wrap"><table id="categoriesTable"></table></div>
+        </div>
+      </section>
+
       <section class="view" id="view-products" hidden>
         <div class="panel">
           <div class="panel-head">
@@ -120,6 +131,16 @@
           <p class="panel-note">Configura el globo flotante, la cuenta regresiva y las animaciones ambientales.</p>
           <label class="field"><span>Activar globo flotante</span><input type="checkbox" id="campShowBubble" checked></label>
           <label class="field"><span>Activar animaciones</span><input type="checkbox" id="campShowAnimations" checked></label>
+          <label class="field"><span>Tema visual</span>
+            <select id="campThemeKey">
+              <option value="default">Por defecto</option>
+              <option value="navidad">Navidad</option>
+              <option value="anio-nuevo">Año Nuevo</option>
+              <option value="cyber">Cyber / Black Friday</option>
+              <option value="san-valentin">San Valentín</option>
+              <option value="fiestas-patrias">Fiestas Patrias</option>
+            </select>
+          </label>
           <label class="field"><span>Efecto visual</span>
             <select id="campVisualEffect">
               <option value="none">Ninguno</option>
@@ -128,6 +149,7 @@
               <option value="sparkles">Destellos (Año Nuevo)</option>
             </select>
           </label>
+          <label class="field"><span>Mensaje global (barra superior)</span><input id="campAnnouncement" placeholder="ENVÍO GRATIS EN PEDIDOS MAYORES A S/ 250"></label>
           <label class="field"><span>Badge</span><input id="campBubbleLabel" placeholder="✨ ¡COMENZÓ!"></label>
           <label class="field"><span>Titular</span><input id="campBubbleTitle" placeholder="Damos inicio a la temporada"></label>
           <label class="field"><span>Subtítulo</span><input id="campBubbleSubtitle" placeholder="Hasta 40% OFF..."></label>
@@ -184,6 +206,18 @@
   </div>
 
   <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <section class="modal" id="categoryModal" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle" hidden>
+      <button class="close-button modal-close" data-close-modal aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <h2 id="categoryModalTitle">Categoría</h2>
+      <form id="categoryForm">
+        <input type="hidden" id="categoryId">
+        <label class="field"><span>Nombre</span><input id="categoryName" required></label>
+        <label class="field"><span>Slug</span><input id="categorySlug" required></label>
+        <p class="form-error" id="categoryError" role="alert"></p>
+        <button class="button button-dark modal-submit" type="submit">Guardar</button>
+      </form>
+    </section>
+
     <section class="modal" id="productModal" role="dialog" aria-modal="true" aria-labelledby="productModalTitle" hidden>
       <button class="close-button modal-close" data-close-modal aria-label="Cerrar"><i data-lucide="x"></i></button>
       <h2 id="productModalTitle">Producto</h2>
