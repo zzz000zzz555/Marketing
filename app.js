@@ -1079,6 +1079,7 @@ const languageSelect = $("#languageSelect");
 
 function applyTheme(dark) {
   document.body.classList.toggle("dark", dark);
+  document.documentElement.setAttribute("data-mode", dark ? "dark" : "light");
   if (themeToggle) themeToggle.checked = dark;
   try { localStorage.setItem("nordico_theme", dark ? "dark" : "light"); } catch (e) {}
   syncHeaderThemeButton();
@@ -1108,6 +1109,29 @@ try {
 
 themeToggle?.addEventListener("change", () => applyTheme(themeToggle.checked));
 const headerThemeBtn = $("#themeToggleButton");
+
+function applyPerformanceMode(enabled) {
+  document.documentElement.classList.toggle("reduce-motion", enabled);
+  try { localStorage.setItem("nordico_performance", enabled ? "1" : "0"); } catch (e) {}
+  const toggle = $("#performanceToggle");
+  if (toggle) toggle.checked = enabled;
+}
+
+// Auto-detect
+(function autoPerformance() {
+  let enable = false;
+  try {
+    if (localStorage.getItem("nordico_performance") === "1") enable = true;
+    else if (localStorage.getItem("nordico_performance") === "0") enable = false;
+    else {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) enable = true;
+      if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) enable = true;
+      if (navigator.deviceMemory && navigator.deviceMemory <= 4) enable = true;
+      if (navigator.connection && navigator.connection.saveData) enable = true;
+    }
+  } catch (e) {}
+  applyPerformanceMode(enable);
+})();
 function syncHeaderThemeButton() {
   const btn = $("#themeToggleButton");
   if (!btn) return;
@@ -1128,6 +1152,7 @@ languageSelect?.addEventListener("change", () => {
   showToast(lang === "es" ? "Idioma: Español" : "Language: English", "globe");
 });
 $("#currencySelect")?.addEventListener("change", (e) => applyCurrency(e.target.value));
+$("#performanceToggle")?.addEventListener("change", (e) => applyPerformanceMode(e.target.checked));
 $("#notificationsToggle")?.addEventListener("change", (e) => {
   try { localStorage.setItem("nordico_notifications", e.target.checked ? "1" : "0"); } catch (err) {}
   showToast(e.target.checked ? "Notificaciones activadas" : "Notificaciones desactivadas", "bell");
@@ -1289,6 +1314,7 @@ function applyCampaignTheme() {
   const key = (activeCampaign.themeKey || "default");
   const preset = THEME_PRESETS[key] || THEME_PRESETS.default;
   document.body.setAttribute("data-theme", key);
+  document.documentElement.setAttribute("data-season", key);
   document.body.style.setProperty("--campaign-primary", preset.primary);
   document.body.style.setProperty("--campaign-accent", preset.accent);
   document.body.style.setProperty("--campaign-bg", preset.bg);
