@@ -303,6 +303,22 @@ body.font-xlarge { font-size: 130%; }
   .hamburger { display: grid; }
 }
 
+/* Microinteracciones elásticas */
+.button, .add-button, .cart-bubble, .filter-tab, .icon-button {
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), background .2s, color .2s, box-shadow .25s;
+}
+.product-card { transition: transform .4s cubic-bezier(.34,1.56,.64,1), box-shadow .3s; }
+.product-card:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0,0,0,.08); }
+.add-button:active { transform: scale(.9) rotate(0deg) !important; }
+.cart-bubble:active { transform: scale(.92) !important; }
+.button:active { transform: scale(.97) !important; }
+
+/* Respeta prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  html { scroll-behavior: auto; }
+}
+
 body.modal-open { overflow: hidden; }
 @media (max-width: 900px) {
   .site-header { padding: 0 5%; }
