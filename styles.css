@@ -232,14 +232,43 @@ h1, h2, p { margin-top: 0; }
 .pagination button.active { background: var(--ink); color: var(--white); border-color: var(--ink); }
 .pagination button:disabled { opacity: .4; cursor: not-allowed; }
 .pagination .ellipsis { border: 0; background: transparent; cursor: default; }
-.cart-bubble { position: fixed; right: 24px; bottom: 24px; z-index: 25; width: 64px; height: 64px; display: grid; place-items: center; border: 1px solid var(--ink); background: var(--white); color: var(--ink); cursor: grab; box-shadow: 0 10px 30px rgba(0,0,0,.15); transition: transform .25s cubic-bezier(.2,.7,.2,1), background .2s, color .2s, box-shadow .25s; touch-action: none; overflow: visible; }
-.cart-bubble::before { content: ""; position: absolute; inset: -6px; border: 1px solid var(--ink); opacity: 0; transform: scale(.8); transition: opacity .3s, transform .3s; pointer-events: none; }
-.cart-bubble.has-items::before { opacity: .35; transform: scale(1); animation: bubble-ring 2.4s ease-out infinite; }
-.cart-bubble:active { cursor: grabbing; transform: scale(.96); }
-.cart-bubble:hover { background: var(--ink); color: var(--white); box-shadow: 0 14px 36px rgba(0,0,0,.22); }
-.cart-bubble svg { width: 24px; height: 24px; stroke-width: 1.5; transition: transform .4s cubic-bezier(.2,.7,.2,1); }
-.cart-bubble:hover svg { transform: rotate(-8deg) scale(1.05); }
-.cart-bubble-count { position: absolute; top: -7px; right: -7px; min-width: 24px; height: 24px; display: grid; place-items: center; padding: 0 6px; background: var(--ink); color: var(--white); font-size: 11px; font-weight: 800; border: 2px solid var(--white); transition: transform .3s cubic-bezier(.2,.7,.2,1); }
+.cart-bubble {
+  position: fixed; right: 24px; bottom: 24px; z-index: 25; width: 72px; height: 72px; display: grid; place-items: center;
+  border: none; cursor: grab; touch-action: none; overflow: visible;
+  background: radial-gradient(circle at 30% 30%, #00e5ff, #0ea5a4 40%, #0f2f33 100%);
+  color: #fff; border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.25), 0 12px 32px rgba(14,165,164,0.45), 0 0 40px rgba(0,229,255,0.35);
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .3s;
+  animation: bubble-float 4s ease-in-out infinite;
+}
+.cart-bubble::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 45%);
+  pointer-events: none; mix-blend-mode: screen;
+}
+.cart-bubble::after {
+  content: ""; position: absolute; inset: -8px; border-radius: 50%;
+  background: conic-gradient(from 0deg, #00e5ff, #34d399, #38bdf8, #00e5ff);
+  filter: blur(14px); opacity: .55; z-index: -1;
+  animation: bubble-rotate 6s linear infinite;
+}
+.cart-bubble.has-items::after { opacity: .8; }
+.cart-bubble:active { cursor: grabbing; transform: scale(.94); }
+.cart-bubble:hover { transform: scale(1.12); box-shadow: 0 0 0 1px rgba(255,255,255,0.4), 0 16px 40px rgba(14,165,164,0.6), 0 0 60px rgba(0,229,255,0.55); }
+.cart-bubble svg { width: 26px; height: 26px; stroke-width: 1.8; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
+.cart-bubble:hover svg { transform: rotate(-10deg) scale(1.1); }
+.cart-bubble-count {
+  position: absolute; top: -6px; right: -6px; min-width: 26px; height: 26px; display: grid; place-items: center; padding: 0 6px;
+  background: linear-gradient(135deg, #0f2f33, #0a0a0a); color: #00e5ff; font-size: 11px; font-weight: 900;
+  border: 2px solid #00e5ff; border-radius: 50%; z-index: 2;
+  box-shadow: 0 0 12px rgba(0,229,255,0.6); transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.cart-bubble.count-bump .cart-bubble-count { animation: count-pop .45s cubic-bezier(.34,1.56,.64,1); }
+.cart-bubble.bump { animation: bubble-bump .5s cubic-bezier(.34,1.56,.64,1), bubble-float 4s ease-in-out infinite; }
+@keyframes bubble-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes bubble-rotate { to { transform: rotate(360deg); } }
+@keyframes bubble-bump { 0% { transform: scale(1) translateY(0); } 35% { transform: scale(1.25) rotate(-8deg) translateY(-4px); } 70% { transform: scale(.95) rotate(5deg); } 100% { transform: scale(1) rotate(0) translateY(0); } }
+@keyframes count-pop { 0% { transform: scale(1); } 40% { transform: scale(1.6); } 100% { transform: scale(1); } }
 .cart-bubble.count-bump .cart-bubble-count { animation: count-pop .45s cubic-bezier(.2,.7,.2,1); }
 .cart-bubble.bump { animation: bubble-bump .5s cubic-bezier(.2,.7,.2,1); }
 @keyframes bubble-bump { 0% { transform: scale(1); } 35% { transform: scale(1.22) rotate(-6deg); } 70% { transform: scale(.95) rotate(4deg); } 100% { transform: scale(1) rotate(0); } }
