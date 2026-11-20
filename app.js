@@ -3,11 +3,19 @@ const STORAGE_KEYS = {
   users: "nordico_users",
   session: "nordico_session",
   stock: "nordico_stock",
-  orders: "nordico_orders"
+  orders: "nordico_orders",
+  products: "nordico_products",
+  favorites: "nordico_favorites",
+  policies: "nordico_policies",
+  settings: "nordico_settings"
 };
-const TAX_RATE = 0.18;
+let TAX_RATE = 0.18;
+try {
+  const s = readStorage(STORAGE_KEYS.settings, null);
+  if (s && typeof s.taxRate === "number") TAX_RATE = s.taxRate / 100;
+} catch (e) {}
 
-const products = [
+const baseProducts = [
   { id: 1, name: "Auriculares Studio", price: 189, category: "Tecnología", stock: 8, description: "Sonido envolvente, diseño cómodo.", image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80", badge: "Más vendido" },
   { id: 2, name: "Lámpara de mesa Alba", price: 249, category: "Hogar", stock: 5, description: "Luz cálida para tus momentos.", image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=800&q=80", badge: "Favorito" },
   { id: 3, name: "Mochila Urban", price: 159, category: "Accesorios", stock: 12, description: "Lista para acompañarte a todas partes.", image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80", badge: "" },
@@ -40,6 +48,9 @@ const products = [
   { id: 30, name: "Altavoz inteligente", price: 259, category: "Tecnología", stock: 8, description: "Tu hogar, al comando de voz.", image: "https://images.unsplash.com/photo-1543512214-318c7553f230?auto=format&fit=crop&w=800&q=80", badge: "" }
 ];
 
+let products = readStorage(STORAGE_KEYS.products, baseProducts);
+if (!readStorage(STORAGE_KEYS.products, null)) writeStorage(STORAGE_KEYS.products, baseProducts);
+
 function readStorage(key, fallback) {
   try {
     const value = localStorage.getItem(key);
@@ -69,10 +80,34 @@ const seedUsers = () => {
 
 seedUsers();
 let currentUser = readStorage(STORAGE_KEYS.session, null);
-let inventory = readStorage(STORAGE_KEYS.stock, Object.fromEntries(products.map((product) => [product.id, product.stock])));
+let inventory = readStorage(STORAGE_KEYS.stock, {});
+for (const product of products) {
+  if (!Number.isInteger(inventory[product.id])) inventory[product.id] = product.stock;
+}
+writeStorage(STORAGE_KEYS.stock, inventory);
 let authMode = "login";
 let activeCategory = "Todos";
 let currentPage = 1;
+const favoritesKey = () => `nordico_favorites_${currentUser ? currentUser.email : "guest"}`;
+let favorites = readStorage(favoritesKey(), []);
+
+function isFavorite(productId) {
+  return favorites.includes(productId);
+}
+
+function toggleFavorite(productId) {
+  if (isFavorite(productId)) favorites = favorites.filter((id) => id !== productId);
+  else favorites = [...favorites, productId];
+  writeStorage(favoritesKey(), favorites);
+  renderProducts();
+  renderFavoritesCount();
+}
+
+function renderFavoritesCount() {
+  const count = favorites.length;
+  const el = $("#favoritesCount");
+  if (el) el.textContent = count;
+}
 let totalPages = 1;
 const ITEMS_PER_PAGE = 8;
 const cartKey = () => `nordico_cart_${currentUser ? currentUser.email : "guest"}`;
@@ -112,7 +147,7 @@ function escapeHtml(value) {
 }
 
 function renderCategories() {
-  const categories = ["Todos", ...new Set(products.map((product) => product.category))];
+  const categories = ["Todos", ...new Set(products.map((product) => product.category)), "Favoritos"];
   $("#categoryTabs").innerHTML = categories.map((category) => `
     <button class="filter-tab${activeCategory === category ? " active" : ""}" data-category="${escapeHtml(category)}" aria-pressed="${activeCategory === category}">${escapeHtml(category)}</button>
   `).join("");
@@ -126,7 +161,9 @@ function renderProducts(resetPage = false) {
   const maxPrice = Number($("#maxPriceInput")?.value) || Infinity;
   const inStockOnly = $("#inStockOnly")?.checked || false;
   let visibleProducts = products.filter((product) => {
-    const matchesCategory = activeCategory === "Todos" || product.category === activeCategory;
+    const matchesCategory = activeCategory === "Todos" || activeCategory === "Favoritos"
+      ? (activeCategory === "Favoritos" ? isFavorite(product.id) : true)
+      : product.category === activeCategory;
     const matchesSearch = product.name.toLocaleLowerCase("es").includes(search) || product.description.toLocaleLowerCase("es").includes(search);
     const matchesPrice = product.price >= minPrice && product.price <= maxPrice;
     const matchesStock = !inStockOnly || getStock(product.id) > 0;
@@ -151,6 +188,7 @@ function renderProducts(resetPage = false) {
         <div class="product-image-wrap">
           <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" loading="lazy">
           ${product.badge ? `<span class="product-badge">${escapeHtml(product.badge)}</span>` : ""}
+          <button class="fav-button ${isFavorite(product.id) ? "active" : ""}" data-fav="${product.id}" aria-label="${isFavorite(product.id) ? "Quitar de favoritos" : "Agregar a favoritos"}" type="button"><i data-lucide="heart"></i></button>
           <button class="add-button" data-add="${product.id}" aria-label="Agregar ${escapeHtml(product.name)} al carrito" ${stock < 1 ? "disabled" : ""}><i data-lucide="${stock < 1 ? "check" : "plus"}"></i></button>
         </div>
         <div class="product-info">
@@ -426,6 +464,7 @@ function handleAuth(event) {
   currentUser = { name: user.name, email: user.email };
   writeStorage(STORAGE_KEYS.session, currentUser);
   cart = readStorage(`nordico_cart_${currentUser.email}`, {});
+  favorites = readStorage(`nordico_favorites_${currentUser.email}`, []);
   if (oldCartKey === "nordico_cart_guest") {
     // Merge the guest basket into the account basket, without exceeding stock.
     for (const [id, count] of Object.entries(readStorage(oldCartKey, {}))) {
@@ -436,6 +475,8 @@ function handleAuth(event) {
   }
   renderHeader();
   renderCart();
+  renderCategories();
+  renderProducts(true);
   updateSideUser();
   closeModal();
   showToast(authMode === "register" ? "Tu cuenta está lista. ¡Bienvenido!" : `¡Hola, ${user.name}! Sesión iniciada.`, "circle-check");
@@ -657,6 +698,11 @@ const POLICIES = {
   }
 };
 
+const storedPolicies = readStorage(STORAGE_KEYS.policies, null);
+if (storedPolicies) {
+  Object.keys(storedPolicies).forEach((key) => { POLICIES[key] = storedPolicies[key]; });
+}
+
 function showPolicy(key) {
   const policy = POLICIES[key];
   if (!policy) return;
@@ -734,6 +780,8 @@ $("#categoryTabs").addEventListener("click", (event) => {
   renderProducts(true);
 });
 productGrid.addEventListener("click", (event) => {
+  const favButton = event.target.closest("[data-fav]");
+  if (favButton) { toggleFavorite(Number(favButton.dataset.fav)); return; }
   const button = event.target.closest("[data-add]");
   if (button) addToCart(Number(button.dataset.add));
 });
@@ -879,8 +927,11 @@ $("#accountButton").addEventListener("click", () => {
     currentUser = null;
     writeStorage(STORAGE_KEYS.session, null);
     cart = readStorage(cartKey(), {});
+    favorites = readStorage(favoritesKey(), []);
     renderHeader();
     renderCart();
+    renderCategories();
+    renderProducts(true);
     showToast("Has cerrado sesión.", "log-out");
   } else {
     setAuthMode("login");
