@@ -185,6 +185,24 @@
       <div class="policy-content" id="policyContent"></div>
     </section>
 
+    <section class="modal product-detail-modal" id="productDetailModal" role="dialog" aria-modal="true" aria-labelledby="productDetailTitle" hidden>
+      <button class="close-button modal-close" data-close-modal aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <div class="product-detail-grid">
+        <div class="product-detail-image"><img id="productDetailImage" src="" alt=""></div>
+        <div class="product-detail-info">
+          <span class="eyebrow" id="productDetailCategory"></span>
+          <h2 id="productDetailTitle"></h2>
+          <p class="product-detail-desc" id="productDetailDesc"></p>
+          <ul class="product-detail-features" id="productDetailFeatures"></ul>
+          <div class="product-detail-meta">
+            <span id="productDetailStock"></span>
+            <strong id="productDetailPrice"></strong>
+          </div>
+          <button class="button button-dark" id="productDetailAdd" type="button">Agregar al carrito <i data-lucide="plus"></i></button>
+        </div>
+      </div>
+    </section>
+
     <section class="modal receipt-modal" id="receiptModal" role="dialog" aria-modal="true" aria-labelledby="receiptTitle" hidden>
       <button class="close-button modal-close" data-close-modal aria-label="Cerrar"><i data-lucide="x"></i></button>
       <span class="eyebrow"><span class="eyebrow-line"></span> COMPROBANTE DE PAGO</span>

@@ -89,26 +89,7 @@
     });
   }
 
-  // 3D tilt líquido en tarjetas de producto
-  if (!reduced) {
-    document.addEventListener("mousemove", (e) => {
-      document.querySelectorAll(".product-card").forEach((card) => {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
-          card.style.transform = "";
-          return;
-        }
-        const rx = ((y / rect.height) - 0.5) * -12;
-        const ry = ((x / rect.width) - 0.5) * 12;
-        card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-6px)`;
-      });
-    });
-    document.addEventListener("mouseleave", () => {
-      document.querySelectorAll(".product-card").forEach((card) => { card.style.transform = ""; });
-    });
-  }
+  // (Tilt 3D desactivado para permitir flip on hover)
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);

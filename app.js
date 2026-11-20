@@ -153,6 +153,18 @@ function renderCategories() {
   `).join("");
 }
 
+function getProductFeatures(product) {
+  const map = {
+    "Tecnología": ["Conectividad inalámbrica", "Batería de larga duración", "Diseño compacto"],
+    "Hogar": ["Materiales duraderos", "Fácil mantenimiento", "Diseño ergonómico"],
+    "Moda": ["Tela de alta calidad", "Corte moderno", "Confort todo el día"],
+    "Deportes": ["Ligero y resistente", "Transpirable", "Soporte óptimo"],
+    "Belleza": ["Fórmula suave", "Resultados visibles", "Apto para uso diario"],
+    "Accesorios": ["Diseño atemporal", "Materiales premium", "Versátil"]
+  };
+  return map[product.category] || ["Calidad garantizada", "Diseño moderno", "Uso diario"];
+}
+
 function renderProducts(resetPage = false) {
   if (resetPage) currentPage = 1;
   const search = $("#searchInput").value.trim().toLocaleLowerCase("es");
@@ -184,17 +196,34 @@ function renderProducts(resetPage = false) {
   } else {
     productGrid.innerHTML = pageProducts.map((product) => {
       const stock = getStock(product.id);
-      return `<article class="product-card">
-        <div class="product-image-wrap">
-          <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" loading="lazy">
-          ${product.badge ? `<span class="product-badge">${escapeHtml(product.badge)}</span>` : ""}
-          <button class="fav-button ${isFavorite(product.id) ? "active" : ""}" data-fav="${product.id}" aria-label="${isFavorite(product.id) ? "Quitar de favoritos" : "Agregar a favoritos"}" type="button"><i data-lucide="heart"></i></button>
-          <button class="add-button" data-add="${product.id}" aria-label="Agregar ${escapeHtml(product.name)} al carrito" ${stock < 1 ? "disabled" : ""}><i data-lucide="${stock < 1 ? "check" : "plus"}"></i></button>
-        </div>
-        <div class="product-info">
-          <div class="product-meta"><span>${escapeHtml(product.category)}</span><span>${stock > 0 ? `${stock} disponibles` : "Agotado"}</span></div>
-          <h3 class="product-name">${escapeHtml(product.name)}</h3>
-          <div class="product-bottom"><p class="product-price">${money(product.price)}</p><span class="product-stock">${escapeHtml(product.description)}</span></div>
+      const features = getProductFeatures(product).slice(0, 3);
+      return `<article class="product-card" data-product-id="${product.id}">
+        <div class="card-inner">
+          <div class="card-face card-front">
+            <div class="product-image-wrap">
+              <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" loading="lazy">
+              ${product.badge ? `<span class="product-badge">${escapeHtml(product.badge)}</span>` : ""}
+              <button class="fav-button ${isFavorite(product.id) ? "active" : ""}" data-fav="${product.id}" aria-label="${isFavorite(product.id) ? "Quitar de favoritos" : "Agregar a favoritos"}" type="button"><i data-lucide="heart"></i></button>
+              <button class="add-button" data-add="${product.id}" aria-label="Agregar ${escapeHtml(product.name)} al carrito" ${stock < 1 ? "disabled" : ""}><i data-lucide="${stock < 1 ? "check" : "plus"}"></i></button>
+            </div>
+            <div class="product-info">
+              <div class="product-meta"><span>${escapeHtml(product.category)}</span><span>${stock > 0 ? `${stock} disponibles` : "Agotado"}</span></div>
+              <h3 class="product-name">${escapeHtml(product.name)}</h3>
+              <div class="product-bottom"><p class="product-price">${money(product.price)}</p></div>
+            </div>
+          </div>
+          <div class="card-face card-back">
+            <h3 class="product-name">${escapeHtml(product.name)}</h3>
+            <p class="card-back-desc">${escapeHtml(product.description)}</p>
+            <ul class="card-back-features">
+              ${features.map((f) => `<li>${escapeHtml(f)}</li>`).join("")}
+            </ul>
+            <div class="card-back-meta">
+              <span>${escapeHtml(product.category)}</span>
+              <strong>${money(product.price)}</strong>
+            </div>
+            <button class="add-button card-back-add" data-add="${product.id}" ${stock < 1 ? "disabled" : ""}><i data-lucide="${stock < 1 ? "check" : "plus"}"></i></button>
+          </div>
         </div>
       </article>`;
     }).join("");
@@ -316,6 +345,23 @@ function showToast(message, icon = "circle-check") {
     toast.classList.add("out");
     window.setTimeout(() => toast.remove(), 220);
   }, 3200);
+}
+
+function openProductDetail(productId) {
+  const product = products.find((p) => p.id === productId);
+  if (!product) return;
+  $("#productDetailImage").src = product.image;
+  $("#productDetailImage").alt = product.name;
+  $("#productDetailCategory").textContent = product.category;
+  $("#productDetailTitle").textContent = product.name;
+  $("#productDetailDesc").textContent = product.description;
+  $("#productDetailFeatures").innerHTML = getProductFeatures(product).map((f) => `<li>${escapeHtml(f)}</li>`).join("");
+  $("#productDetailStock").textContent = getStock(product.id) > 0 ? `${getStock(product.id)} disponibles` : "Agotado";
+  $("#productDetailPrice").textContent = money(product.price);
+  $("#productDetailAdd").dataset.add = product.id;
+  $("#productDetailAdd").disabled = getStock(product.id) < 1;
+  openModal($("#productDetailModal"));
+  refreshIcons();
 }
 
 function openDrawer() {
@@ -803,7 +849,9 @@ productGrid.addEventListener("click", (event) => {
   const favButton = event.target.closest("[data-fav]");
   if (favButton) { toggleFavorite(Number(favButton.dataset.fav)); return; }
   const button = event.target.closest("[data-add]");
-  if (button) addToCart(Number(button.dataset.add));
+  if (button) { addToCart(Number(button.dataset.add)); return; }
+  const card = event.target.closest(".product-card");
+  if (card) openProductDetail(Number(card.dataset.productId));
 });
 $("#searchInput").addEventListener("input", () => renderProducts(true));
 $("#sortSelect").addEventListener("change", () => renderProducts(true));
@@ -942,6 +990,10 @@ $("#clearCartButton").addEventListener("click", () => {
   showToast("Tu bolsa quedó vacía.", "trash-2");
 });
 $("#checkoutButton").addEventListener("click", checkout);
+$("#productDetailAdd").addEventListener("click", () => {
+  const id = Number($("#productDetailAdd").dataset.add);
+  if (id) { addToCart(id); closeModal(); }
+});
 $("#accountButton").addEventListener("click", () => {
   if (currentUser) {
     currentUser = null;
