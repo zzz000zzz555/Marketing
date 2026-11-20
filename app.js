@@ -1225,7 +1225,6 @@ function initCampaignBubble() {
     countdown.setAttribute("hidden", "");
   }
   bubble.removeAttribute("hidden");
-  console.log("bubble hidden after remove:", bubble.hasAttribute("hidden"));
   setTimeout(() => bubble.classList.add("show"), 1500);
   document.getElementById("campaignBubbleClose").addEventListener("click", () => {
     bubble.classList.remove("show");
@@ -1285,7 +1284,6 @@ function initCampaignCanvas() {
 }
 
 async function initApp() {
-  window.__initAppRan = true;
   try {
     await loadProductsFromSupabase();
     renderCategories();
@@ -1293,12 +1291,9 @@ async function initApp() {
     renderHeader();
     renderCart();
     refreshIcons();
-    window.__beforeBubble = true;
     initCampaignBubble();
-    window.__afterBubble = true;
     initCampaignCanvas();
   } catch (e) {
-    window.__initError = e.message;
     console.error("initApp error:", e);
   }
 }
