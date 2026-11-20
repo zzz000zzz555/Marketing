@@ -106,6 +106,22 @@ let currentPage = 1;
 const favoritesKey = () => `nordico_favorites_${currentUser ? currentUser.email : "guest"}`;
 let favorites = readStorage(favoritesKey(), []);
 let lastOrders = [];
+const defaultCampaign = {
+  showBubble: true,
+  showAnimations: true,
+  visualEffect: "none",
+  bubbleLabel: "✨ ¡COMENZÓ!",
+  bubbleTitle: "Damos inicio a la temporada",
+  bubbleSubtitle: "Hasta 40% OFF en combos de regalo y envío gratis desde S/ 250.",
+  bubbleCtaText: "Ver ofertas",
+  bubbleCtaUrl: "#catalogo",
+  endsAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+  showCountdown: true
+};
+let activeCampaign = (function () {
+  try { return JSON.parse(localStorage.getItem("nordico_campaign")) || defaultCampaign; }
+  catch (e) { return defaultCampaign; }
+})();
 
 function isFavorite(productId) {
   return favorites.includes(productId);
@@ -1188,6 +1204,82 @@ $("#newsletterForm").addEventListener("submit", (event) => {
   showToast("¡Gracias por sumarte a la comunidad!", "mail-check");
 });
 
+function initCampaignBubble() {
+  const bubble = $("#campaignBubble");
+  if (!bubble || !activeCampaign.showBubble) return;
+  if (sessionStorage.getItem("nordico_campaign_closed")) return;
+  $("#campaignBubbleBadge").textContent = activeCampaign.bubbleLabel || "";
+  $("#campaignBubbleTitle").textContent = activeCampaign.bubbleTitle || "";
+  $("#campaignBubbleSubtitle").textContent = activeCampaign.bubbleSubtitle || "";
+  const cta = $("#campaignBubbleCta");
+  cta.textContent = activeCampaign.bubbleCtaText || "Ver ofertas";
+  cta.href = activeCampaign.bubbleCtaUrl || "#catalogo";
+  const countdown = $("#campaignCountdown");
+  if (activeCampaign.showCountdown && activeCampaign.endsAt) {
+    countdown.hidden = false;
+    updateCampaignCountdown();
+    setInterval(updateCampaignCountdown, 1000);
+  } else {
+    countdown.hidden = true;
+  }
+  setTimeout(() => bubble.classList.add("show"), 1500);
+  $("#campaignBubbleClose").addEventListener("click", () => {
+    bubble.classList.remove("show");
+    sessionStorage.setItem("nordico_campaign_closed", "1");
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && bubble.classList.contains("show")) {
+      bubble.classList.remove("show");
+      sessionStorage.setItem("nordico_campaign_closed", "1");
+    }
+  });
+}
+
+function updateCampaignCountdown() {
+  const countdown = $("#campaignCountdown");
+  if (!countdown || !activeCampaign.endsAt) return;
+  const diff = new Date(activeCampaign.endsAt).getTime() - Date.now();
+  if (diff <= 0) { countdown.textContent = "Finalizado"; return; }
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  countdown.innerHTML = `<span>${d}d</span><span>${String(h).padStart(2,"0")}h</span><span>${String(m).padStart(2,"0")}m</span><span>${String(s).padStart(2,"0")}s</span>`;
+}
+
+function initCampaignCanvas() {
+  const canvas = $("#campaignCanvas");
+  if (!canvas || !activeCampaign.showAnimations) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const ctx = canvas.getContext("2d");
+  let particles = [];
+  const effect = activeCampaign.visualEffect || "none";
+  if (effect === "none") return;
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener("resize", resize);
+  if (effect === "snow") {
+    for (let i = 0; i < 60; i++) particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 1+Math.random()*2, s: 0.3+Math.random()*0.8 });
+  } else if (effect === "confetti") {
+    for (let i = 0; i < 40; i++) particles.push({ x: Math.random()*canvas.width, y: -Math.random()*canvas.height, r: 2+Math.random()*3, s: 1+Math.random()*2, c: Math.random() > 0.5 ? "#dc2626" : "#ffffff", rot: Math.random()*Math.PI });
+  } else if (effect === "sparkles") {
+    for (let i = 0; i < 30; i++) particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 1+Math.random()*2, s: 0.2+Math.random()*0.5, a: Math.random() });
+  }
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if (effect === "snow") {
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      particles.forEach(p => { ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); p.y += p.s; p.x += Math.sin(p.y*0.01)*0.3; if (p.y > canvas.height) { p.y = -5; p.x = Math.random()*canvas.width; } });
+    } else if (effect === "confetti") {
+      particles.forEach(p => { ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c; ctx.fillRect(-p.r,-p.r,p.r*2,p.r*2); ctx.restore(); p.y += p.s; p.rot += 0.05; if (p.y > canvas.height) { p.y = -10; p.x = Math.random()*canvas.width; } });
+    } else if (effect === "sparkles") {
+      particles.forEach(p => { p.a += 0.02; const alpha = (Math.sin(p.a)+1)/2; ctx.fillStyle = `rgba(255,215,0,${alpha})`; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); p.y -= p.s; if (p.y < -5) { p.y = canvas.height+5; p.x = Math.random()*canvas.width; } });
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
 async function initApp() {
   await loadProductsFromSupabase();
   renderCategories();
@@ -1195,5 +1287,7 @@ async function initApp() {
   renderHeader();
   renderCart();
   refreshIcons();
+  initCampaignBubble();
+  initCampaignCanvas();
 }
 initApp();

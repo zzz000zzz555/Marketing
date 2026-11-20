@@ -38,6 +38,7 @@
         <button data-view="orders"><i data-lucide="shopping-bag"></i>Pedidos</button>
         <button data-view="users"><i data-lucide="users"></i>Usuarios</button>
         <button data-view="content"><i data-lucide="file-text"></i>Contenido</button>
+        <button data-view="campaign"><i data-lucide="sparkles"></i>Campañas</button>
         <button data-view="audit"><i data-lucide="shield-check"></i>Auditoría</button>
         <button data-view="settings"><i data-lucide="settings"></i>Configuración</button>
       </nav>
@@ -110,6 +111,31 @@
           <h3>Usuarios registrados</h3>
           <p class="panel-note">Los correos se muestran parcialmente por seguridad. Las contraseñas nunca se exponen.</p>
           <div class="table-wrap"><table id="usersTable"></table></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-campaign" hidden>
+        <div class="panel glass">
+          <h3>Globo flotante y animaciones de campaña</h3>
+          <p class="panel-note">Configura el globo flotante, la cuenta regresiva y las animaciones ambientales.</p>
+          <label class="field"><span>Activar globo flotante</span><input type="checkbox" id="campShowBubble" checked></label>
+          <label class="field"><span>Activar animaciones</span><input type="checkbox" id="campShowAnimations" checked></label>
+          <label class="field"><span>Efecto visual</span>
+            <select id="campVisualEffect">
+              <option value="none">Ninguno</option>
+              <option value="snow">Nieve (Navidad)</option>
+              <option value="confetti">Confeti (Fiestas Patrias)</option>
+              <option value="sparkles">Destellos (Año Nuevo)</option>
+            </select>
+          </label>
+          <label class="field"><span>Badge</span><input id="campBubbleLabel" placeholder="✨ ¡COMENZÓ!"></label>
+          <label class="field"><span>Titular</span><input id="campBubbleTitle" placeholder="Damos inicio a la temporada"></label>
+          <label class="field"><span>Subtítulo</span><input id="campBubbleSubtitle" placeholder="Hasta 40% OFF..."></label>
+          <label class="field"><span>Texto botón CTA</span><input id="campBubbleCtaText" placeholder="Ver ofertas"></label>
+          <label class="field"><span>URL botón CTA</span><input id="campBubbleCtaUrl" placeholder="#catalogo"></label>
+          <label class="field"><span>Mostrar cuenta regresiva</span><input type="checkbox" id="campShowCountdown"></label>
+          <label class="field"><span>Fecha fin (ends_at)</span><input type="datetime-local" id="campEndsAt"></label>
+          <button class="button button-dark" id="saveCampaignButton" type="button">Guardar campaña</button>
         </div>
       </section>
 

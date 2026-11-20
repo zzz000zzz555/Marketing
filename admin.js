@@ -218,6 +218,7 @@ async function renderView(view) {
     orders: "Pedidos",
     users: "Usuarios",
     content: "Contenido",
+    campaign: "Campañas",
     audit: "Auditoría",
     settings: "Configuración"
   };
@@ -227,6 +228,7 @@ async function renderView(view) {
   if (view === "orders") await renderOrders();
   if (view === "users") renderUsers();
   if (view === "content") loadPolicyEditor();
+  if (view === "campaign") loadCampaignEditor();
   if (view === "audit") renderAudit();
   if (view === "settings") loadSettings();
   refreshIcons();
@@ -540,6 +542,39 @@ function savePolicy() {
   showToast("Política guardada");
 }
 
+// ---------- Campaign ----------
+function loadCampaignEditor() {
+  const c = JSON.parse(localStorage.getItem("nordico_campaign") || "null") || {};
+  $("#campShowBubble").checked = c.showBubble !== false;
+  $("#campShowAnimations").checked = c.showAnimations !== false;
+  $("#campVisualEffect").value = c.visualEffect || "none";
+  $("#campBubbleLabel").value = c.bubbleLabel || "";
+  $("#campBubbleTitle").value = c.bubbleTitle || "";
+  $("#campBubbleSubtitle").value = c.bubbleSubtitle || "";
+  $("#campBubbleCtaText").value = c.bubbleCtaText || "";
+  $("#campBubbleCtaUrl").value = c.bubbleCtaUrl || "";
+  $("#campShowCountdown").checked = !!c.showCountdown;
+  if (c.endsAt) $("#campEndsAt").value = new Date(c.endsAt).toISOString().slice(0,16);
+}
+
+function saveCampaign() {
+  const c = {
+    showBubble: $("#campShowBubble").checked,
+    showAnimations: $("#campShowAnimations").checked,
+    visualEffect: $("#campVisualEffect").value,
+    bubbleLabel: $("#campBubbleLabel").value.trim(),
+    bubbleTitle: $("#campBubbleTitle").value.trim(),
+    bubbleSubtitle: $("#campBubbleSubtitle").value.trim(),
+    bubbleCtaText: $("#campBubbleCtaText").value.trim(),
+    bubbleCtaUrl: $("#campBubbleCtaUrl").value.trim(),
+    showCountdown: $("#campShowCountdown").checked,
+    endsAt: $("#campEndsAt").value ? new Date($("#campEndsAt").value).toISOString() : null
+  };
+  localStorage.setItem("nordico_campaign", JSON.stringify(c));
+  logAction(getSession()?.username || "admin", "Campaña actualizada");
+  showToast("Campaña guardada");
+}
+
 // ---------- Audit ----------
 function renderAudit() {
   const checks = [
@@ -783,6 +818,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Content
   $("#policyKeySelect").addEventListener("change", loadPolicyEditor);
   $("#savePolicyButton").addEventListener("click", savePolicy);
+  $("#saveCampaignButton").addEventListener("click", saveCampaign);
   // Settings
   $("#saveSettingsButton").addEventListener("click", saveSettings);
   $("#backupButton").addEventListener("click", backupAll);

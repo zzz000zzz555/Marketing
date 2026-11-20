@@ -292,6 +292,15 @@
     <span class="cart-bubble-count" id="cartBubbleCount">0</span>
   </button>
   <button class="back-to-top" id="backToTop" aria-label="Volver arriba" type="button"><i data-lucide="arrow-up"></i></button>
+  <div class="campaign-bubble" id="campaignBubble" aria-live="polite" hidden>
+    <button class="campaign-bubble-close" id="campaignBubbleClose" aria-label="Cerrar" type="button"><i data-lucide="x"></i></button>
+    <span class="campaign-bubble-badge" id="campaignBubbleBadge"></span>
+    <h3 id="campaignBubbleTitle"></h3>
+    <p id="campaignBubbleSubtitle"></p>
+    <div class="campaign-countdown" id="campaignCountdown" hidden></div>
+    <a class="button button-dark" id="campaignBubbleCta" href="#"></a>
+  </div>
+  <canvas class="campaign-canvas" id="campaignCanvas" aria-hidden="true"></canvas>
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>
