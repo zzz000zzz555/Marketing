@@ -82,10 +82,21 @@
               <option value="featured">Destacados</option>
               <option value="price-asc">Precio: menor a mayor</option>
               <option value="price-desc">Precio: mayor a menor</option>
+              <option value="name-asc">Nombre A-Z</option>
             </select>
             <i data-lucide="chevron-down"></i>
           </label>
         </div>
+      </div>
+      <div class="advanced-filters">
+        <label class="filter-range">Precio mín.
+          <input type="number" id="minPriceInput" min="0" placeholder="0">
+        </label>
+        <label class="filter-range">Precio máx.
+          <input type="number" id="maxPriceInput" min="0" placeholder="999">
+        </label>
+        <label class="filter-check"><input type="checkbox" id="inStockOnly"> Solo en stock</label>
+        <button type="button" class="text-button" id="resetFiltersButton">Limpiar filtros</button>
       </div>
       <div class="product-grid" id="productGrid" aria-live="polite"></div>
       <nav class="pagination" id="pagination" aria-label="Paginación de productos"></nav>
@@ -213,6 +224,12 @@
           <label class="side-toggle"><span>Idioma</span>
             <select id="languageSelect"><option value="es">Español</option><option value="en">English</option></select>
           </label>
+          <label class="side-toggle"><span>Moneda</span>
+            <select id="currencySelect"><option value="PEN">Soles (PEN)</option><option value="USD">Dólares (USD)</option></select>
+          </label>
+          <label class="side-toggle"><span>Notificaciones</span><input type="checkbox" id="notificationsToggle" checked></label>
+          <button type="button" id="clearDataButton"><i data-lucide="trash-2"></i>Borrar mis datos</button>
+          <button type="button" id="exportDataButton"><i data-lucide="download"></i>Exportar mis datos</button>
         </div>
       </details>
       <details>

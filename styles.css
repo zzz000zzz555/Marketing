@@ -200,6 +200,10 @@ h1, h2, p { margin-top: 0; }
 .receipt-content .receipt-totals div { display: flex; justify-content: space-between; margin-bottom: 4px; }
 .receipt-content .receipt-totals .grand { font-weight: 800; font-size: 15px; border-top: 1px solid var(--ink); padding-top: 8px; margin-top: 8px; }
 .receipt-actions { display: flex; gap: 16px; align-items: center; justify-content: flex-end; margin-top: 18px; }
+.advanced-filters { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+.filter-range { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.filter-range input { width: 80px; height: 32px; border: 1px solid var(--line); background: var(--white); color: var(--ink); padding: 0 8px; font-size: 12px; }
+.filter-check { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); cursor: pointer; }
 .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 40px; flex-wrap: wrap; }
 .pagination button { min-width: 36px; height: 36px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 600; }
 .pagination button:hover { background: var(--soft); }

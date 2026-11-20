@@ -87,8 +87,22 @@ const cartBubble = $("#cartBubble");
 const sideDrawer = $("#sideDrawer");
 const sideOverlay = $("#sideOverlay");
 
+let currentCurrency = "PEN";
+const EXCHANGE_RATE = 3.75; // 1 USD = 3.75 PEN (referencial)
 function money(value) {
+  if (currentCurrency === "USD") {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value / EXCHANGE_RATE);
+  }
   return new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(value);
+}
+
+function applyCurrency(currency) {
+  currentCurrency = currency;
+  const select = $("#currencySelect");
+  if (select) select.value = currency;
+  try { localStorage.setItem("nordico_currency", currency); } catch (e) {}
+  renderProducts();
+  renderCart();
 }
 
 function escapeHtml(value) {
@@ -108,12 +122,19 @@ function renderProducts(resetPage = false) {
   if (resetPage) currentPage = 1;
   const search = $("#searchInput").value.trim().toLocaleLowerCase("es");
   const sort = $("#sortSelect").value;
+  const minPrice = Number($("#minPriceInput")?.value) || 0;
+  const maxPrice = Number($("#maxPriceInput")?.value) || Infinity;
+  const inStockOnly = $("#inStockOnly")?.checked || false;
   let visibleProducts = products.filter((product) => {
     const matchesCategory = activeCategory === "Todos" || product.category === activeCategory;
-    return matchesCategory && product.name.toLocaleLowerCase("es").includes(search);
+    const matchesSearch = product.name.toLocaleLowerCase("es").includes(search) || product.description.toLocaleLowerCase("es").includes(search);
+    const matchesPrice = product.price >= minPrice && product.price <= maxPrice;
+    const matchesStock = !inStockOnly || getStock(product.id) > 0;
+    return matchesCategory && matchesSearch && matchesPrice && matchesStock;
   });
   if (sort === "price-asc") visibleProducts = visibleProducts.sort((a, b) => a.price - b.price);
   if (sort === "price-desc") visibleProducts = visibleProducts.sort((a, b) => b.price - a.price);
+  if (sort === "name-asc") visibleProducts = visibleProducts.sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   totalPages = Math.max(1, Math.ceil(visibleProducts.length / ITEMS_PER_PAGE));
   if (currentPage > totalPages) currentPage = totalPages;
@@ -473,72 +494,165 @@ const POLICIES = {
   terms: {
     title: "Términos y condiciones",
     content: `
-      <h3>1. Uso del sitio</h3>
-      <p>Al acceder a NÓRDICO aceptas estos términos. El sitio es una demostración educativa de carrito de compra sin base de datos.</p>
-      <h3>2. Productos y precios</h3>
-      <p>Los precios se muestran en soles (PEN) e incluyen los impuestos aplicables. El stock es limitado y se actualiza al confirmar cada pedido.</p>
-      <h3>3. Pedidos</h3>
-      <p>Un pedido se considera confirmado cuando recibes el número de pedido y la boleta correspondiente. Puedes vaciar tu bolsa en cualquier momento antes de confirmar.</p>
-      <h3>4. Devoluciones</h3>
-      <p>Aceptamos devoluciones dentro de los 14 días posteriores a la entrega, siempre que el producto esté en su estado original.</p>
+      <h3>1. Objeto y aceptación</h3>
+      <p>Estos términos regulan el acceso y uso del sitio web de NÓRDICO (en adelante, "la Tienda"). Al navegar, registrarse o realizar una compra, aceptas íntegramente estos términos. Si no estás de acuerdo, debes abstenerte de usar el sitio.</p>
+      <h3>2. Naturaleza del servicio</h3>
+      <p>La Tienda es una plataforma de demostración educativa de comercio electrónico sin base de datos externa. Los pedidos, usuarios y stock se almacenan localmente en el navegador del visitante (localStorage). No se procesan pagos reales.</p>
+      <h3>3. Cuenta de usuario</h3>
+      <p>Para finalizar una compra debes crear una cuenta con nombre, correo electrónico y contraseña (mínimo 6 caracteres). Eres responsable de la confidencialidad de tus credenciales y de toda actividad realizada desde tu cuenta. Debes notificarnos de inmediato ante cualquier uso no autorizado.</p>
+      <h3>4. Productos, precios y disponibilidad</h3>
+      <p>Los precios se expresan en soles peruanos (PEN) e incluyen el impuesto general a las ventas (IGV) cuando corresponda. El stock es limitado y se actualiza al confirmar cada pedido. Nos reservamos el derecho de modificar precios, descripciones e imágenes sin previo aviso. Las fotografías son ilustrativas y pueden variar ligeramente del producto real.</p>
+      <h3>5. Proceso de compra</h3>
+      <p>El flujo de compra incluye: selección de productos, revisión de la bolsa, inicio de sesión, confirmación de datos de envío y método de pago simulado. Un pedido se considera confirmado cuando se genera el número de pedido (formato ND-XXXXXXXX) y la boleta correspondiente. Puedes vaciar tu bolsa en cualquier momento antes de confirmar.</p>
+      <h3>6. Pagos</h3>
+      <p>Los métodos de pago (tarjeta de crédito, transferencia bancaria y pago contra entrega) son simulados. No se realizan cargos reales ni se transmiten datos bancarios. La Tienda no almacena números de tarjeta ni códigos de seguridad.</p>
+      <h3>7. Envíos y entregas</h3>
+      <p>Realizamos envíos a todo el Perú. Los pedidos se procesan en 1 a 2 días hábiles y la entrega estimada es de 3 a 7 días hábiles. El envío es gratuito en pedidos mayores a S/ 250; para pedidos menores se aplica una tarifa calculada al finalizar la compra. Los tiempos son estimados y pueden variar por causas ajenas.</p>
+      <h3>8. Devoluciones, cambios y reembolsos</h3>
+      <p>Tienes 14 días calendario desde la recepción para devolver un producto. Debe estar sin uso, en su empaque original y con etiquetas. El reembolso se procesa en 5 a 10 días hábiles tras la verificación. Los cambios de talla o color están sujetos a disponibilidad de stock. Los productos en promoción o personalizados no admiten devolución.</p>
+      <h3>9. Propiedad intelectual</h3>
+      <p>Todo el contenido del sitio (textos, imágenes, logotipos, diseño, código) es propiedad de NÓRDICO STUDIO o de sus licenciantes y está protegido por las leyes de propiedad intelectual. Queda prohibida su reproducción, distribución o modificación sin autorización escrita.</p>
+      <h3>10. Limitación de responsabilidad</h3>
+      <p>La Tienda se ofrece "tal cual". No garantizamos disponibilidad ininterrumpida ni ausencia de errores. En la máxima medida permitida por la ley, NÓRDICO no será responsable por daños indirectos, incidentales o consecuentes derivados del uso del sitio.</p>
+      <h3>11. Modificaciones</h3>
+      <p>Nos reservamos el derecho de modificar estos términos en cualquier momento. Las modificaciones entran en vigor al publicarse en el sitio. El uso continuado implica la aceptación de los nuevos términos.</p>
+      <h3>12. Ley aplicable y jurisdicción</h3>
+      <p>Estos términos se rigen por las leyes de la República del Perú. Cualquier controversia se someterá a los jueces y tribunales de Lima, Perú.</p>
+      <h3>13. Contacto</h3>
+      <p>Para consultas sobre estos términos, escríbenos a soporte@nordico.pe o usa el formulario de contacto del sitio.</p>
     `
   },
   privacy: {
     title: "Política de privacidad",
     content: `
-      <h3>Datos que recopilamos</h3>
-      <p>Nombre, correo electrónico, dirección de envío y datos del pedido. No almacenamos datos de tarjetas de pago reales.</p>
-      <h3>Uso de los datos</h3>
-      <p>Usamos tus datos únicamente para procesar pedidos, mostrar tu historial y mejorar la experiencia. No compartimos información con terceros.</p>
-      <h3>Almacenamiento</h3>
-      <p>Toda la información se guarda localmente en tu navegador (localStorage). Al cerrar sesión tus datos permanecen en este dispositivo.</p>
-      <h3>Tus derechos</h3>
-      <p>Puedes solicitar la eliminación de tus datos borrando el almacenamiento del navegador o contactándonos.</p>
+      <h3>1. Responsable del tratamiento</h3>
+      <p>NÓRDICO STUDIO es responsable del tratamiento de los datos personales recopilados a través del sitio. Contacto: privacidad@nordico.pe.</p>
+      <h3>2. Datos que recopilamos</h3>
+      <ul>
+        <li><strong>Datos de identificación y contacto:</strong> nombre, correo electrónico, teléfono (opcional), dirección de envío.</li>
+        <li><strong>Datos de cuenta:</strong> contraseña (almacenada localmente para fines de demostración).</li>
+        <li><strong>Datos de pedido:</strong> productos, cantidades, precios, totales, dirección y método de pago simulado.</li>
+        <li><strong>Datos de navegación:</strong> preferencias (tema, tamaño de letra, idioma), posición del carrito flotante, historial de filtros.</li>
+        <li><strong>Cookies y almacenamiento local:</strong> localStorage y sessionStorage para mantener sesión y carrito.</li>
+      </ul>
+      <h3>3. Finalidades del tratamiento</h3>
+      <ul>
+        <li>Crear y gestionar tu cuenta.</li>
+        <li>Procesar y entregar pedidos.</li>
+        <li>Mostrar tu historial de compras y generar boletas.</li>
+        <li>Mejorar la experiencia (recordar preferencias).</li>
+        <li>Responder consultas y soporte.</li>
+        <li>Cumplir obligaciones legales y contables.</li>
+      </ul>
+      <h3>4. Base legal</h3>
+      <p>El tratamiento se basa en tu consentimiento (al crear la cuenta), la ejecución del contrato (procesar el pedido) y el interés legítimo (mejorar el servicio). Puedes retirar tu consentimiento en cualquier momento.</p>
+      <h3>5. Conservación de los datos</h3>
+      <p>Los datos se conservan mientras mantengas tu cuenta y por el tiempo necesario para cumplir obligaciones legales (hasta 5 años para fines contables). Puedes solicitar la eliminación en cualquier momento.</p>
+      <h3>6. Compartición de datos</h3>
+      <p>No vendemos ni compartimos tus datos personales con terceros con fines comerciales. Solo los compartimos con proveedores de servicios estrictamente necesarios (transporte, pasarelas de pago) bajo acuerdos de confidencialidad, o cuando la ley lo exija.</p>
+      <h3>7. Almacenamiento local</h3>
+      <p>Toda la información se guarda en tu navegador mediante localStorage. Al cerrar sesión, los datos permanecen en el dispositivo. Puedes borrarlos desde la configuración del navegador o desde la sección "Configuración" del sitio.</p>
+      <h3>8. Tus derechos</h3>
+      <p>Tienes derecho a acceder, rectificar, suprimir, oponerte al tratamiento y solicitar la portabilidad de tus datos. Para ejercerlos, contáctanos en privacidad@nordico.pe. Responderemos en un plazo máximo de 15 días hábiles.</p>
+      <h3>9. Cookies y tecnologías similares</h3>
+      <p>Usamos almacenamiento local para mantener tu sesión, carrito y preferencias. No usamos cookies de terceros para publicidad. Puedes deshabilitar el almacenamiento local desde tu navegador, aunque algunas funciones dejarán de operar.</p>
+      <h3>10. Seguridad</h3>
+      <p>Aplicamos medidas técnicas y organizativas razonables para proteger tus datos. Sin embargo, ningún sistema es 100% seguro; te recomendamos usar contraseñas robustas y no compartirlas.</p>
+      <h3>11. Menores de edad</h3>
+      <p>El sitio no está dirigido a menores de 14 años. No recopilamos conscientemente datos de menores. Si detectas que un menor ha proporcionado datos, contáctanos para eliminarlos.</p>
+      <h3>12. Transferencias internacionales</h3>
+      <p>Los datos se procesan en el dispositivo del usuario y no se transfieren a servidores externos. Si en el futuro se usaran servicios en la nube, se informará y se garantizará un nivel adecuado de protección.</p>
+      <h3>13. Cambios en la política</h3>
+      <p>Podemos actualizar esta política. La versión vigente estará siempre disponible en el sitio. Te notificaremos de cambios significativos.</p>
+      <h3>14. Contacto</h3>
+      <p>Para consultas sobre privacidad, escríbenos a privacidad@nordico.pe.</p>
     `
   },
   security: {
-    title: "Seguridad",
+    title: "Política de seguridad",
     content: `
-      <h3>Protección de datos</h3>
-      <p>Las contraseñas se almacenan únicamente en el navegador para fines de demostración. No utilices contraseñas reales ni sensibles.</p>
-      <h3>Pagos simulados</h3>
-      <p>Los métodos de pago son simulados. No se procesan cargos reales ni se transmiten datos bancarios.</p>
-      <h3>Buenas prácticas</h3>
+      <h3>1. Principios</h3>
+      <p>La seguridad de tus datos y de la plataforma es una prioridad. Aplicamos un enfoque de defensa en profundidad y mejoramos continuamente nuestros controles.</p>
+      <h3>2. Autenticación</h3>
       <ul>
-        <li>Usa una contraseña única para esta demostración.</li>
-        <li>No compartas tu sesión en dispositivos públicos.</li>
-        <li>Cierra sesión al terminar.</li>
+        <li>Las contraseñas se almacenan localmente para fines de demostración. No uses contraseñas reales ni sensibles.</li>
+        <li>La sesión se mantiene mediante localStorage y se cierra al pulsar "Salir".</li>
+        <li>Te recomendamos cerrar sesión en dispositivos compartidos.</li>
       </ul>
-      <h3>Reporte de problemas</h3>
-      <p>Si detectas un comportamiento inusual, contáctanos a través del correo de soporte.</p>
+      <h3>3. Pagos simulados</h3>
+      <p>Los métodos de pago son simulados. No se procesan cargos reales ni se transmiten datos bancarios. La Tienda no almacena números de tarjeta, CVV ni fechas de vencimiento.</p>
+      <h3>4. Almacenamiento y transporte</h3>
+      <p>Los datos se guardan en tu navegador. No se envían a servidores externos. Cuando el sitio se sirve por HTTPS, el tráfico entre tu navegador y el servidor está cifrado.</p>
+      <h3>5. Buenas prácticas para el usuario</h3>
+      <ul>
+        <li>Usa una contraseña única y robusta para esta demostración.</li>
+        <li>No compartas tu sesión ni dejes el dispositivo desatendido.</li>
+        <li>Mantén tu navegador actualizado.</li>
+        <li>Verifica que la URL comience con https://.</li>
+        <li>No hagas clic en enlaces sospechosos que suplanten la Tienda.</li>
+      </ul>
+      <h3>6. Reporte de vulnerabilidades</h3>
+      <p>Si detectas un fallo de seguridad, repórtalo de forma responsable a seguridad@nordico.pe. Incluye descripción, pasos para reproducir y impacto. No explotes la vulnerabilidad ni accedas a datos de terceros. Responderemos en un plazo razonable.</p>
+      <h3>7. Disponibilidad y continuidad</h3>
+      <p>Al ser una demostración estática, la disponibilidad depende del proveedor de hosting (GitHub Pages). No garantizamos disponibilidad ininterrumpida.</p>
+      <h3>8. Cookies</h3>
+      <p>No usamos cookies de seguimiento. Solo almacenamiento local para funcionalidad. Puedes borrarlo desde la configuración del navegador.</p>
+      <h3>9. Cambios</h3>
+      <p>Esta política puede actualizarse. La versión vigente estará disponible en el sitio.</p>
+      <h3>10. Contacto</h3>
+      <p>Para asuntos de seguridad, escríbenos a seguridad@nordico.pe.</p>
     `
   },
   shipping: {
     title: "Envíos y devoluciones",
     content: `
-      <h3>Envíos</h3>
-      <p>Enviamos a todo el Perú. Los pedidos se procesan en 1 a 2 días hábiles y la entrega estimada es de 3 a 7 días hábiles.</p>
-      <h3>Costos</h3>
-      <p>Envío gratis en pedidos mayores a S/ 250. Para pedidos menores se aplica una tarifa calculada al finalizar la compra.</p>
-      <h3>Devoluciones</h3>
-      <p>Tienes 14 días para devolver un producto. Debe estar sin uso y con su empaque original. El reembolso se procesa en 5 a 10 días hábiles.</p>
-      <h3>Cambios</h3>
-      <p>Los cambios de talla o color están sujetos a disponibilidad de stock.</p>
+      <h3>1. Zonas de envío</h3>
+      <p>Enviamos a todo el Perú, incluyendo zonas urbanas y rurales. Algunas zonas remotas pueden tener tiempos adicionales.</p>
+      <h3>2. Procesamiento y entrega</h3>
+      <p>Los pedidos se procesan en 1 a 2 días hábiles tras la confirmación. La entrega estimada es de 3 a 7 días hábiles. Recibirás el número de pedido para seguimiento.</p>
+      <h3>3. Costos de envío</h3>
+      <ul>
+        <li><strong>Envío gratis:</strong> pedidos mayores a S/ 250.</li>
+        <li><strong>Tarifa estándar:</strong> S/ 15 para pedidos menores a S/ 250.</li>
+        <li><strong>Envío express:</strong> S/ 25 (entrega en 1 a 2 días hábiles, sujeto a disponibilidad).</li>
+      </ul>
+      <h3>4. Seguimiento</h3>
+      <p>Puedes consultar el estado de tu pedido en "Mis pedidos". Ante incidencias, contáctanos con tu número de pedido.</p>
+      <h3>5. Incidencias en la entrega</h3>
+      <p>Si el paquete llega dañado o incompleto, repórtalo dentro de las 48 horas siguientes a la recepción con fotos. Gestionaremos el reenvío o reembolso.</p>
+      <h3>6. Devoluciones</h3>
+      <p>Tienes 14 días calendario desde la recepción para devolver un producto. Debe estar sin uso, en su empaque original y con etiquetas. El reembolso se procesa en 5 a 10 días hábiles tras la verificación en almacén.</p>
+      <h3>7. Cambios</h3>
+      <p>Los cambios de talla o color están sujetos a disponibilidad de stock. El cliente asume el costo de envío de retorno salvo error nuestro.</p>
+      <h3>8. Productos no retornables</h3>
+      <p>Productos en promoción, personalizados o de higiene (cosméticos abiertos) no admiten devolución, salvo defecto de fábrica.</p>
+      <h3>9. Contacto</h3>
+      <p>Para gestionar devoluciones o incidencias, escríbenos a devoluciones@nordico.pe con tu número de pedido.</p>
     `
   },
   faq: {
     title: "Preguntas frecuentes",
     content: `
-      <h3>¿Necesito crear una cuenta?</h3>
-      <p>Puedes navegar y agregar productos como invitado. Para finalizar la compra debes iniciar sesión o crear una cuenta.</p>
+      <h3>¿Necesito crear una cuenta para comprar?</h3>
+      <p>Puedes navegar y agregar productos como invitado. Para finalizar la compra debes iniciar sesión o crear una cuenta gratuita.</p>
       <h3>¿Dónde se guardan mis datos?</h3>
-      <p>En el navegador, mediante localStorage. No hay base de datos externa.</p>
+      <p>En tu navegador mediante localStorage. No hay base de datos externa ni servidor. Tus datos permanecen en este dispositivo.</p>
       <h3>¿Puedo imprimir mi boleta?</h3>
-      <p>Sí. Al confirmar la compra se genera una boleta que puedes imprimir o guardar como PDF desde el navegador.</p>
+      <p>Sí. Al confirmar la compra se genera una boleta en formato ticketera (80 mm) que puedes imprimir o guardar como PDF desde el navegador.</p>
       <h3>¿Los pagos son reales?</h3>
-      <p>No. Es una demostración; los pagos son simulados.</p>
+      <p>No. Es una demostración educativa; los pagos son simulados y no se procesan cargos.</p>
       <h3>¿Cómo vacío mi carrito?</h3>
-      <p>Usa el botón "Vaciar bolsa" dentro del carrito.</p>
+      <p>Usa el botón "Vaciar bolsa" dentro del carrito o elimina productos uno por uno.</p>
+      <h3>¿Puedo cambiar el tema o tamaño de letra?</h3>
+      <p>Sí. Abre el menú lateral (☰) → Configuración y elige tema oscuro, tamaño de letra e idioma. Las preferencias se guardan en tu navegador.</p>
+      <h3>¿El carrito flotante se puede mover?</h3>
+      <p>Sí. Arrastra la burbuja del carrito a cualquier posición de la pantalla; su ubicación se guarda.</p>
+      <h3>¿Cómo busco productos?</h3>
+      <p>Usa el buscador en la barra de catálogo y los filtros por categoría, precio y disponibilidad. También puedes ordenar por precio.</p>
+      <h3>¿Qué hago si olvidé mi contraseña?</h3>
+      <p>Al ser una demostración local, no hay recuperación. Puedes crear una nueva cuenta o borrar los datos del navegador.</p>
+      <h3>¿Cómo borro mis datos?</h3>
+      <p>Desde Configuración → "Borrar datos del navegador" o limpiando el almacenamiento local del sitio.</p>
     `
   }
 };
@@ -625,6 +739,17 @@ productGrid.addEventListener("click", (event) => {
 });
 $("#searchInput").addEventListener("input", () => renderProducts(true));
 $("#sortSelect").addEventListener("change", () => renderProducts(true));
+$("#minPriceInput").addEventListener("input", () => renderProducts(true));
+$("#maxPriceInput").addEventListener("input", () => renderProducts(true));
+$("#inStockOnly").addEventListener("change", () => renderProducts(true));
+$("#resetFiltersButton").addEventListener("click", () => {
+  $("#minPriceInput").value = "";
+  $("#maxPriceInput").value = "";
+  $("#inStockOnly").checked = false;
+  $("#searchInput").value = "";
+  $("#sortSelect").value = "featured";
+  renderProducts(true);
+});
 $("#pagination").addEventListener("click", (event) => {
   const button = event.target.closest("[data-page]");
   if (!button || button.disabled) return;
@@ -688,9 +813,15 @@ function applyFontSize(size) {
 try {
   applyTheme(localStorage.getItem("nordico_theme") === "dark");
   applyFontSize(localStorage.getItem("nordico_fontsize") || "normal");
+  applyCurrency(localStorage.getItem("nordico_currency") || "PEN");
+  const lang = localStorage.getItem("nordico_lang");
+  if (lang && languageSelect) languageSelect.value = lang;
+  const notif = localStorage.getItem("nordico_notifications");
+  if (notif !== null && $("#notificationsToggle")) $("#notificationsToggle").checked = notif === "1";
 } catch (e) {
   applyTheme(false);
   applyFontSize("normal");
+  applyCurrency("PEN");
 }
 
 themeToggle?.addEventListener("change", () => applyTheme(themeToggle.checked));
@@ -699,6 +830,32 @@ languageSelect?.addEventListener("change", () => {
   const lang = languageSelect.value;
   try { localStorage.setItem("nordico_lang", lang); } catch (e) {}
   showToast(lang === "es" ? "Idioma: Español" : "Language: English", "globe");
+});
+$("#currencySelect")?.addEventListener("change", (e) => applyCurrency(e.target.value));
+$("#notificationsToggle")?.addEventListener("change", (e) => {
+  try { localStorage.setItem("nordico_notifications", e.target.checked ? "1" : "0"); } catch (err) {}
+  showToast(e.target.checked ? "Notificaciones activadas" : "Notificaciones desactivadas", "bell");
+});
+$("#clearDataButton")?.addEventListener("click", () => {
+  if (!confirm("¿Borrar todos tus datos locales (cuenta, carrito, pedidos, preferencias)?")) return;
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith("nordico_")).forEach((k) => localStorage.removeItem(k));
+  } catch (e) {}
+  location.reload();
+});
+$("#exportDataButton")?.addEventListener("click", () => {
+  const data = {};
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith("nordico_")).forEach((k) => { data[k] = JSON.parse(localStorage.getItem(k)); });
+  } catch (e) {}
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "nordico-datos.json";
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Datos exportados", "download");
 });
 drawerOverlay.addEventListener("click", closeDrawer);
 document.querySelectorAll("[data-close-drawer]").forEach((button) => button.addEventListener("click", closeDrawer));
