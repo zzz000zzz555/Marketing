@@ -1222,6 +1222,7 @@ function initCampaignBubble() {
   } else {
     countdown.hidden = true;
   }
+  bubble.hidden = false;
   setTimeout(() => bubble.classList.add("show"), 1500);
   $("#campaignBubbleClose").addEventListener("click", () => {
     bubble.classList.remove("show");
